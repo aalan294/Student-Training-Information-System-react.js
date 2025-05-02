@@ -127,23 +127,29 @@ const Students = () => {
     console.log('Filtered students:', filtered);
 
     if (selectedBatch) {
-      filtered = filtered.filter(student => student.batch === selectedBatch);
+      filtered = filtered.filter(student => 
+        student.batch?.toLowerCase() === selectedBatch.toLowerCase()
+      );
     }
 
     if (selectedDepartment) {
-      filtered = filtered.filter(student => student.department === selectedDepartment);
+      filtered = filtered.filter(student => 
+        student.department?.toLowerCase() === selectedDepartment.toLowerCase()
+      );
     }
 
     if (selectedYear) {
-      filtered = filtered.filter(student => student.passoutYear === selectedYear);
+      filtered = filtered.filter(student => 
+        String(student.passoutYear) === String(selectedYear)
+      );
     }
 
     if (searchQuery) {
-      const query = searchQuery.toLowerCase();
+      const query = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(student => 
-        student.name.toLowerCase().includes(query) ||
-        student.regNo.toLowerCase().includes(query) ||
-        student.email.toLowerCase().includes(query)
+        (student.name?.toLowerCase() || '').includes(query) ||
+        (student.regNo?.toLowerCase() || '').includes(query) ||
+        (student.email?.toLowerCase() || '').includes(query)
       );
     }
 
@@ -159,9 +165,10 @@ const Students = () => {
     setStudents(students.filter(student => student._id !== studentId));
   };
 
-  const uniqueBatches = [...new Set(students.map(student => student.batch))];
-  const uniqueDepartments = [...new Set(students.map(student => student.department))];
-  const uniqueYears = [...new Set(students.map(student => student.passoutYear))];
+  // Use predefined options for filters
+  const batchOptions = batchTypes;
+  const departmentOptionsList = departmentOptions;
+  const yearOptions = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() + i);
 
   if (loading) {
     return (
@@ -205,7 +212,7 @@ const Students = () => {
             onChange={(e) => setSelectedBatch(e.target.value)}
           >
             <option value="">All Batches</option>
-            {uniqueBatches.map(batch => (
+            {batchOptions.map(batch => (
               <option key={batch} value={batch}>{batch}</option>
             ))}
           </Select>
@@ -215,7 +222,7 @@ const Students = () => {
             onChange={(e) => setSelectedDepartment(e.target.value)}
           >
             <option value="">All Departments</option>
-            {uniqueDepartments.map(dept => (
+            {departmentOptionsList.map(dept => (
               <option key={dept} value={dept}>{dept}</option>
             ))}
           </Select>
@@ -225,7 +232,7 @@ const Students = () => {
             onChange={(e) => setSelectedYear(e.target.value)}
           >
             <option value="">All Years</option>
-            {uniqueYears.map(year => (
+            {yearOptions.map(year => (
               <option key={year} value={year}>{year}</option>
             ))}
           </Select>
