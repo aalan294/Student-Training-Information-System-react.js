@@ -5,7 +5,7 @@ import CreateModuleModal from '../components/admin/CreateModuleModal';
 import StudentDetailsModal from '../components/admin/StudentDetailsModal';
 import { useNavigate } from 'react-router-dom';
 
-const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service'];
+const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service', 'General'];
 
 const Container = styled.div`
   display: flex;

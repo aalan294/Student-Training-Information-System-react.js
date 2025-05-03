@@ -84,7 +84,7 @@ const ErrorMessage = styled.div`
   border-radius: 0.375rem;
 `;
 
-const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service'];
+const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service', 'General'];
 const departmentOptions = ['CSE', 'IT', 'MECH', 'EEE', 'ECE', 'BIOTECH', 'CIVIL'];
 
 const Students = () => {
