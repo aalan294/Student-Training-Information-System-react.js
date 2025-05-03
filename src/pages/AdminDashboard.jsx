@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { getAllStudents, getStudentDetails } from '../services/api';
 import CreateModuleModal from '../components/admin/CreateModuleModal';
 import StudentDetailsModal from '../components/admin/StudentDetailsModal';
+import { useNavigate } from 'react-router-dom';
 
 const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service'];
 
@@ -175,6 +176,7 @@ const AdminDashboard = () => {
   const [isCreateModuleModalOpen, setIsCreateModuleModalOpen] = useState(false);
   const [isStudentDetailsModalOpen, setIsStudentDetailsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAllStudents();
@@ -228,14 +230,8 @@ const AdminDashboard = () => {
     setIsCreateModuleModalOpen(true);
   };
 
-  const handleStudentClick = async (studentId) => {
-    try {
-      const studentDetails = await getStudentDetails(studentId);
-      setSelectedStudent(studentDetails.student);
-      setIsStudentDetailsModalOpen(true);
-    } catch (err) {
-      console.error('Failed to fetch student details:', err);
-    }
+  const handleStudentClick = (studentId) => {
+    navigate(`/admin/students/${studentId}/dashboard`);
   };
 
   if (error) {

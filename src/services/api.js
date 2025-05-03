@@ -140,4 +140,14 @@ export const getStudentModuleDetails = (moduleId) => {
   return api.get(`/student/${studentData._id}/module/${moduleId}`);
 };
 
+// Admin Attendance and Module Update APIs
+export const updateAttendance = (data) => api.post('/admin/attendance', data);
+export const updateModuleDetails = (moduleId, data) => api.put(`/admin/modules/${moduleId}`, data);
+
+// Mark module as completed
+export const markModuleAsCompleted = async (moduleId) => {
+  const response = await api.put(`/admin/modules/${moduleId}/complete`, {});
+  return response.data;
+};
+
 export default api;

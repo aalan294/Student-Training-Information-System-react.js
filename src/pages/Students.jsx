@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { getAllStudents } from '../services/api';
 import StudentDetailsModal from '../components/admin/StudentDetailsModal';
+import { useNavigate } from 'react-router-dom';
 
 const Container = styled.div`
   padding: 2rem;
@@ -100,6 +101,8 @@ const Students = () => {
   const [selectedYear, setSelectedYear] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     fetchStudents();
   }, []);
@@ -157,8 +160,7 @@ const Students = () => {
   }, [students, selectedBatch, selectedDepartment, selectedYear, searchQuery]);
 
   const handleStudentClick = (student) => {
-    setSelectedStudent(student);
-    setIsModalOpen(true);
+    navigate(`/admin/students/${student._id}/dashboard`);
   };
 
   const handleDeleteStudent = (studentId) => {

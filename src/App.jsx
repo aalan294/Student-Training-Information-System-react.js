@@ -13,6 +13,7 @@ import Students from './pages/Students';
 import StudentLogin from './pages/StudentLogin';
 import StudentDashboard from './pages/StudentDashboard';
 import ProtectedRoute from './components/student/ProtectedRoute';
+import AdminStudentDashboard from './pages/AdminStudentDashboard';
 
 const PrivateRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
@@ -39,6 +40,7 @@ function App() {
           >
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="students" element={<Students />} />
+            <Route path="students/:studentId/dashboard" element={<AdminStudentDashboard />} />
             <Route path="bulk-upload" element={<BulkUpload />} />
             <Route path="scores" element={<ScoreUpload />} />
             <Route path="training" element={<TrainingModuleView />} />
