@@ -190,7 +190,7 @@ const TotalStudents = styled.div`
   margin-top: 0.5rem;
 `;
 
-const Leaderboard = () => {
+const AdminLeaderboard = () => {
   const [modules, setModules] = useState([]);
   const [selectedModule, setSelectedModule] = useState('');
   const [examType, setExamType] = useState('average');
@@ -278,9 +278,6 @@ const Leaderboard = () => {
     <Container>
       <Header>
         <Title>Module Leaderboard</Title>
-        <BackButton onClick={() => navigate('/student/dashboard')}>
-          Back to Dashboard
-        </BackButton>
       </Header>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -372,4 +369,4 @@ const Leaderboard = () => {
   );
 };
 
-export default Leaderboard; 
+export default AdminLeaderboard; 

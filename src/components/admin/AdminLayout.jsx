@@ -152,6 +152,7 @@ const AdminLayout = ({ children }) => {
   const menuItems = [
     { path: '/admin/dashboard', label: 'Dashboard' },
     { path: '/admin/students', label: 'Students' },
+    { path: '/admin/leaderboard', label: 'Leaderboard' },
     { path: '/admin/bulk-upload', label: 'Bulk Upload' },
     { path: '/admin/scores', label: 'Scores' },
     { path: '/admin/training', label: 'Training' },
