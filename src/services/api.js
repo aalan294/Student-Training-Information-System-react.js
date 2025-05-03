@@ -82,8 +82,11 @@ export const addModule = async (moduleData) => {
   return api.post('/admin/modules', moduleData);
 };
 export const updateModule = (moduleId, moduleData) => api.put(`/admin/modules/${moduleId}`, moduleData);
-export const getStudentModules = () => api.get('/student/modules');
+export const getStudentModules = () => {
+  return api.get(`/admin/modules`);
+};
 export const getModuleStudents = (moduleId) => api.get(`/admin/students/module/${moduleId}`);
+
 
 export const getStudentDetails = async (studentId) => {
   const response = await api.get(`/student/${studentId}`);
@@ -147,6 +150,20 @@ export const updateModuleDetails = (moduleId, data) => api.put(`/admin/modules/$
 export const markModuleAsCompleted = async (moduleId) => {
   const response = await api.put(`/admin/modules/${moduleId}/complete`, {});
   return response.data;
+};
+
+// Leaderboard API
+export const getModuleLeaderboard = async (moduleId, examType) => {
+  const studentData = JSON.parse(localStorage.getItem('studentData'));
+  if (!studentData?._id) {
+    return Promise.reject(new Error('Student data not found'));
+  }
+  return api.get(`/student/module/${moduleId}/leaderboard`, {
+    params: {
+      examType,
+      studentId: studentData._id
+    }
+  });
 };
 
 export default api;

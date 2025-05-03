@@ -14,6 +14,7 @@ import StudentLogin from './pages/StudentLogin';
 import StudentDashboard from './pages/StudentDashboard';
 import ProtectedRoute from './components/student/ProtectedRoute';
 import AdminStudentDashboard from './pages/AdminStudentDashboard';
+import Leaderboard from './pages/Leaderboard';
 
 const PrivateRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
@@ -57,6 +58,7 @@ function App() {
             }
           >
             <Route path="dashboard" element={<StudentDashboard />} />
+            <Route path="leaderboard" element={<Leaderboard />} />
           </Route>
 
           {/* Public Routes */}
