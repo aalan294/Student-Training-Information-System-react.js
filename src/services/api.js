@@ -13,10 +13,18 @@ const api = axios.create({
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('adminToken');
+    // Check if the request is for student endpoints
+    const isStudentEndpoint = config.url.startsWith('/student');
+    
+    // Get the appropriate token based on the endpoint
+    const token = isStudentEndpoint 
+      ? localStorage.getItem('studentToken')
+      : localStorage.getItem('adminToken');
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     // For form-data requests, remove Content-Type to let browser set it
     if (config.data instanceof FormData) {
       delete config.headers['Content-Type'];
@@ -28,9 +36,30 @@ api.interceptors.request.use(
   }
 );
 
+// Add response interceptor to handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear the appropriate token and data based on the endpoint
+      const isStudentEndpoint = error.config.url.startsWith('/student');
+      if (isStudentEndpoint) {
+        localStorage.removeItem('studentToken');
+        localStorage.removeItem('studentData');
+        window.location.href = '/student/login';
+      } else {
+        localStorage.removeItem('adminToken');
+        window.location.href = '/admin/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Auth APIs
 export const loginAdmin = (credentials) => api.post('/admin/login', credentials);
 export const registerAdmin = (adminData) => api.post('/admin/register', adminData);
+export const loginStudent = (credentials) => api.post('/student/login', credentials);
 
 // Student APIs
 export const getAllStudents = () => {
@@ -92,6 +121,23 @@ export const uploadIndividualScore = async (studentId, moduleId, examNumber, sco
 
 export const deleteStudent = (studentId) => {
   return api.delete(`/admin/student/${studentId}`);
+};
+
+// Student Dashboard APIs
+export const getStudentProfile = () => {
+  const studentData = JSON.parse(localStorage.getItem('studentData'));
+  if (!studentData?._id) {
+    return Promise.reject(new Error('Student data not found'));
+  }
+  return api.get(`/student/${studentData._id}`);
+};
+
+export const getStudentModuleDetails = (moduleId) => {
+  const studentData = JSON.parse(localStorage.getItem('studentData'));
+  if (!studentData?._id) {
+    return Promise.reject(new Error('Student data not found'));
+  }
+  return api.get(`/student/${studentData._id}/module/${moduleId}`);
 };
 
 export default api;

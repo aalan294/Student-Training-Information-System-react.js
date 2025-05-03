@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { deleteStudent } from '../../services/api';
+import { deleteStudent, getStudentModulePerformance } from '../../services/api';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -219,10 +219,36 @@ const ConfirmDeleteButton = styled(DeleteButton)`
   margin-top: 0;
 `;
 
+const ViewDetailsButton = styled.button`
+  background-color: #2563eb;
+  color: white;
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 2px 0 rgba(37, 99, 235, 0.08);
+
+  &:hover {
+    background-color: #1d4ed8;
+    box-shadow: 0 2px 8px 0 rgba(37, 99, 235, 0.12);
+  }
+
+  &:disabled {
+    background-color: #93c5fd;
+    cursor: not-allowed;
+  }
+`;
+
 const StudentDetailsModal = ({ student, onClose, onDelete }) => {
+  console.log(student)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);
+  const [detailedModule, setDetailedModule] = useState(null);
+  const [detailedLoading, setDetailedLoading] = useState(false);
 
   const handleDelete = async () => {
     try {
@@ -239,7 +265,39 @@ const StudentDetailsModal = ({ student, onClose, onDelete }) => {
     }
   };
 
+  const handleShowModuleDetails = async (moduleId) => {
+    if (!moduleId) {
+      setError('Module ID is missing or invalid.');
+      return;
+    }
+    try {
+      setDetailedLoading(true);
+      setError(null);
+      const data = await getStudentModulePerformance(student._id, moduleId);
+      setDetailedModule(data);
+    } catch (err) {
+      setError('Failed to fetch module details');
+    } finally {
+      setDetailedLoading(false);
+    }
+  };
+
+  const handleCloseModuleDetails = () => {
+    setDetailedModule(null);
+  };
+
   if (!student) return null;
+
+  // Normalize trainings to always have a moduleIdStr property
+  const normalizedTrainings = (student.trainings || []).map(training => {
+    let moduleIdStr = '';
+    if (typeof training.moduleId === 'string') {
+      moduleIdStr = training.moduleId;
+    } else if (training.moduleId && training.moduleId._id) {
+      moduleIdStr = training.moduleId._id;
+    }
+    return { ...training, moduleIdStr };
+  });
 
   return (
     <>
@@ -300,36 +358,36 @@ const StudentDetailsModal = ({ student, onClose, onDelete }) => {
           </ExternalLinks>
 
           <TrainingsContainer>
-            <Title>Training Modules ({student.trainings ? student.trainings.length : 0} trainings)</Title>
-            {student.trainings && student.trainings.length > 0 ? (
-              student.trainings.map((training, index) => (
+            <Title>Training Modules ({normalizedTrainings.length} trainings)</Title>
+            {normalizedTrainings.length > 0 ? (
+              normalizedTrainings.map((training, index) => (
                 <TrainingCard key={index}>
-                  <TrainingTitle>{training.moduleId.title}</TrainingTitle>
+                  <TrainingTitle>{training.moduleId?.title || 'Untitled Module'}</TrainingTitle>
                   <DetailGroup>
                     <DetailLabel>Status</DetailLabel>
                     <DetailValue>
-                      {training.progress.isCompleted ? 'Completed' : 'In Progress'}
+                      {training.progress?.isCompleted ? 'Completed' : 'In Progress'}
                     </DetailValue>
                   </DetailGroup>
-                  {training.progress.score !== undefined && (
+                  {training.progress?.score !== undefined && (
                     <DetailGroup>
                       <DetailLabel>Score</DetailLabel>
-                      <DetailValue>{training.progress.score}%</DetailValue>
+                      <DetailValue>{training.progress?.score ?? 'NA'}%</DetailValue>
                       <ProgressBar>
-                        <ProgressFill percentage={training.progress.score} />
+                        <ProgressFill percentage={training.progress?.score ?? 0} />
                       </ProgressBar>
                     </DetailGroup>
                   )}
-                  {training.progress.attendance !== undefined && (
+                  {training.progress?.attendance !== undefined && (
                     <DetailGroup>
                       <DetailLabel>Attendance</DetailLabel>
-                      <DetailValue>{training.progress.attendance}%</DetailValue>
+                      <DetailValue>{training.progress?.attendance ?? 'NA'}%</DetailValue>
                       <ProgressBar>
-                        <ProgressFill percentage={training.progress.attendance} />
+                        <ProgressFill percentage={training.progress?.attendance ?? 0} />
                       </ProgressBar>
                     </DetailGroup>
                   )}
-                  {training.progress.examScores && training.progress.examScores.length > 0 && (
+                  {training.progress?.examScores && training.progress.examScores.length > 0 && (
                     <DetailGroup>
                       <DetailLabel>Exam Scores</DetailLabel>
                       <ExamScores>
@@ -342,6 +400,14 @@ const StudentDetailsModal = ({ student, onClose, onDelete }) => {
                       </ExamScores>
                     </DetailGroup>
                   )}
+                  <DetailGroup>
+                    <ViewDetailsButton
+                      onClick={() => handleShowModuleDetails(training.moduleIdStr)}
+                      disabled={detailedLoading || !training.moduleIdStr}
+                    >
+                      {detailedLoading ? 'Loading...' : 'View Full Module Details'}
+                    </ViewDetailsButton>
+                  </DetailGroup>
                 </TrainingCard>
               ))
             ) : (
@@ -381,6 +447,50 @@ const StudentDetailsModal = ({ student, onClose, onDelete }) => {
             </ButtonGroup>
           </ConfirmBox>
         </ConfirmDialog>
+      )}
+
+      {detailedModule && (
+        <ModalOverlay onClick={handleCloseModuleDetails}>
+          <ModalContent onClick={e => e.stopPropagation()}>
+            <CloseButton onClick={handleCloseModuleDetails}>&times;</CloseButton>
+            <Title>Module Details: {detailedModule.data.module.title}</Title>
+            <DetailGroup>
+              <DetailLabel>Description</DetailLabel>
+              <DetailValue>{detailedModule.data.module.description}</DetailValue>
+            </DetailGroup>
+            <DetailGroup>
+              <DetailLabel>Duration</DetailLabel>
+              <DetailValue>{detailedModule.data.module.durationDays} days</DetailValue>
+            </DetailGroup>
+            <DetailGroup>
+              <DetailLabel>Total Exams</DetailLabel>
+              <DetailValue>{detailedModule.data.module.examsCount}</DetailValue>
+            </DetailGroup>
+            <DetailGroup>
+              <DetailLabel>Average Score</DetailLabel>
+              <DetailValue>{detailedModule.data.performance.averageScore}%</DetailValue>
+            </DetailGroup>
+            <DetailGroup>
+              <DetailLabel>Attendance</DetailLabel>
+              <DetailValue>{detailedModule.data.performance.attendance.percentage}%</DetailValue>
+            </DetailGroup>
+            <DetailGroup>
+              <DetailLabel>Exam Scores</DetailLabel>
+              <ExamScores>
+                {detailedModule.data.performance.examScores.map((exam, idx) => (
+                  <ExamScore key={idx}>
+                    <ExamLabel>Exam {exam.exam}</ExamLabel>
+                    <ExamValue score={exam.score}>{exam.score}%</ExamValue>
+                  </ExamScore>
+                ))}
+              </ExamScores>
+            </DetailGroup>
+            <DetailGroup>
+              <DetailLabel>Last Updated</DetailLabel>
+              <DetailValue>{new Date(detailedModule.data.performance.lastUpdated).toLocaleString()}</DetailValue>
+            </DetailGroup>
+          </ModalContent>
+        </ModalOverlay>
       )}
     </>
   );

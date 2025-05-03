@@ -10,6 +10,9 @@ import BulkUpload from './components/admin/BulkUpload';
 import ScoreUpload from './components/admin/ScoreUpload';
 import TrainingModuleView from './components/admin/TrainingModuleView';
 import Students from './pages/Students';
+import StudentLogin from './pages/StudentLogin';
+import StudentDashboard from './pages/StudentDashboard';
+import ProtectedRoute from './components/student/ProtectedRoute';
 
 const PrivateRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
@@ -21,6 +24,7 @@ function App() {
     <Router>
       <SampleDataProvider>
         <Routes>
+          {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
           
           <Route
@@ -40,7 +44,21 @@ function App() {
             <Route path="training" element={<TrainingModuleView />} />
           </Route>
           
-          <Route path="/" element={<StudentView />} />
+          {/* Student Routes */}
+          <Route path="/student/login" element={<StudentLogin />} />
+          <Route
+            path="/student"
+            element={
+              <ProtectedRoute>
+                <Outlet />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="dashboard" element={<StudentDashboard />} />
+          </Route>
+
+          {/* Public Routes */}
+          <Route path="/" element={<Navigate to="/student/login" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </SampleDataProvider>
