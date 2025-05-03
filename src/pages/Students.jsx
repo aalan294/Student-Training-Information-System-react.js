@@ -110,14 +110,11 @@ const Students = () => {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      console.log('Fetching students...');
       const response = await getAllStudents();
-      console.log('API Response:', response);
       setStudents(response.data.students);
       setFilteredStudents(response.data.students);
       setError(null);
     } catch (err) {
-      console.error('Error details:', err);
       setError('Failed to fetch students');
     } finally {
       setLoading(false);
@@ -126,8 +123,6 @@ const Students = () => {
 
   useEffect(() => {
     let filtered = [...students];
-    console.log('Current students:', students);
-    console.log('Filtered students:', filtered);
 
     if (selectedBatch) {
       filtered = filtered.filter(student => 

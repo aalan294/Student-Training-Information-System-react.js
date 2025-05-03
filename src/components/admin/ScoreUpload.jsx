@@ -210,7 +210,6 @@ const ScoreUpload = () => {
         setIsFetchingModules(true);
         setError('');
         const response = await getAllModules();
-        console.log(response)
         if (response.data?.modules) {
           setModules(response.data.modules);
         } else {
@@ -303,14 +302,12 @@ const ScoreUpload = () => {
     };
 
     try {
-      console.log('Uploading individual score with payload:', payload);
       const response = await uploadIndividualScore(
         payload.studentId,
         payload.moduleId,
         payload.examNumber,
         payload.score
       );
-      console.log('API response:', response);
       if (response) {
         setSuccess(
           `Score updated successfully. New average: ${response.progress?.averageScore ?? 'N/A'}`
@@ -320,7 +317,6 @@ const ScoreUpload = () => {
         }, 1200);
       }
     } catch (err) {
-      console.error('Error updating score:', err, err.response);
       setError(err.response?.message || 'Failed to update score');
     } finally {
       setIsLoading(false);

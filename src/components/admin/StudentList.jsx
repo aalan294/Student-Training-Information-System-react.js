@@ -63,7 +63,6 @@ const StudentList = ({ students, batch, onStudentSelect }) => {
     onStudentSelect(students.filter(student => student._id !== studentId));
   };
 
-  console.log('Rendering StudentList with students:', students);
   return (
     <Container>
       <Title>{batch} Students</Title>

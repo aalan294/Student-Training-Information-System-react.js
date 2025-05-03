@@ -112,7 +112,6 @@ const StudentLogin = () => {
 
     try {
       const response = await loginStudent(formData);
-      console.log(response)
       localStorage.setItem('studentToken', response.data.token);
       localStorage.setItem('studentData', JSON.stringify(response.data.student));
       navigate('/student/dashboard');

@@ -104,7 +104,6 @@ export const uploadBulkScores = async (file, moduleId, examNumber) => {
     // Do NOT set Content-Type header manually!
     return await api.post('/admin/upload-scores', formData);
   } catch (error) {
-    console.error('Bulk score upload error:', error);
     throw error;
   }
 };

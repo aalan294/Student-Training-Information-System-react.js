@@ -72,7 +72,6 @@ const StudentDashboard = () => {
       })));
       setError(null);
     } catch (err) {
-      console.error('Error fetching student data:', err);
       if (err.message === 'Student data not found. Please login again.') {
         localStorage.removeItem('studentToken');
         localStorage.removeItem('studentData');

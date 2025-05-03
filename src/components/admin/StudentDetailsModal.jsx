@@ -274,7 +274,6 @@ const AttendanceStatus = styled.span`
 `;
 
 const StudentDetailsModal = ({ student, onClose, onDelete }) => {
-  console.log(student)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);
