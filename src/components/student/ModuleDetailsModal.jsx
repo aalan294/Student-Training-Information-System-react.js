@@ -106,6 +106,36 @@ const ErrorMessage = styled.div`
   padding: 2rem;
 `;
 
+const AttendanceList = styled.div`
+  margin-top: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  overflow: hidden;
+`;
+
+const AttendanceItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: white;
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const AttendanceDate = styled.span`
+  color: #374151;
+  font-weight: 500;
+`;
+
+const AttendanceStatus = styled.span`
+  color: ${props => props.present ? '#059669' : '#dc2626'};
+  font-weight: 500;
+`;
+
 const ModuleDetailsModal = ({ module, details, onClose, loading, error }) => {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -181,6 +211,16 @@ const ModuleDetailsModal = ({ module, details, onClose, loading, error }) => {
               </StatValue>
             </StatCard>
           </Grid>
+          <AttendanceList>
+            {details.performance.attendance.details?.map((record, index) => (
+              <AttendanceItem key={index}>
+                <AttendanceDate>{new Date(record.date).toLocaleDateString()}</AttendanceDate>
+                <AttendanceStatus present={record.present}>
+                  {record.present ? 'Present' : 'Absent'}
+                </AttendanceStatus>
+              </AttendanceItem>
+            ))}
+          </AttendanceList>
         </Section>
 
         <Section>

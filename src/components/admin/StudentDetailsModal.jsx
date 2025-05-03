@@ -242,6 +242,37 @@ const ViewDetailsButton = styled.button`
   }
 `;
 
+const AttendanceList = styled.div`
+  margin-top: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  overflow: hidden;
+`;
+
+const AttendanceItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  background-color: white;
+  font-size: 0.875rem;
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const AttendanceDate = styled.span`
+  color: #374151;
+  font-weight: 500;
+`;
+
+const AttendanceStatus = styled.span`
+  color: ${props => props.present ? '#059669' : '#dc2626'};
+  font-weight: 500;
+`;
+
 const StudentDetailsModal = ({ student, onClose, onDelete }) => {
   console.log(student)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -473,6 +504,16 @@ const StudentDetailsModal = ({ student, onClose, onDelete }) => {
             <DetailGroup>
               <DetailLabel>Attendance</DetailLabel>
               <DetailValue>{detailedModule.data.performance.attendance.percentage}%</DetailValue>
+              <AttendanceList>
+                {detailedModule.data.performance.attendance.details?.map((record, index) => (
+                  <AttendanceItem key={index}>
+                    <AttendanceDate>{new Date(record.date).toLocaleDateString()}</AttendanceDate>
+                    <AttendanceStatus present={record.present}>
+                      {record.present ? 'Present' : 'Absent'}
+                    </AttendanceStatus>
+                  </AttendanceItem>
+                ))}
+              </AttendanceList>
             </DetailGroup>
             <DetailGroup>
               <DetailLabel>Exam Scores</DetailLabel>

@@ -66,12 +66,62 @@ const PlacementTag = styled.div`
   }};
 `;
 
+const AttendanceTooltip = styled.div`
+  position: relative;
+  cursor: pointer;
+
+  &:hover > div {
+    display: block;
+  }
+`;
+
+const TooltipContent = styled.div`
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  min-width: 200px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 10;
+  margin-top: 0.5rem;
+`;
+
+const TooltipTitle = styled.div`
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.5rem;
+  text-align: center;
+`;
+
+const TooltipItem = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+`;
+
+const TooltipDate = styled.span`
+  color: #374151;
+`;
+
+const TooltipStatus = styled.span`
+  color: ${props => props.present ? '#059669' : '#dc2626'};
+  font-weight: 500;
+`;
+
 const ProgressSummary = ({
   totalModules,
   completedModules,
   averageScore,
   attendancePercentage,
-  placementCategory
+  placementCategory,
+  attendanceDetails
 }) => {
   return (
     <SummaryContainer>
@@ -89,7 +139,22 @@ const ProgressSummary = ({
 
       <SummaryCard>
         <CardTitle>Attendance</CardTitle>
-        <CardValue>{attendancePercentage}%</CardValue>
+        <CardValue>
+          <AttendanceTooltip>
+            {attendancePercentage}%
+            <TooltipContent>
+              <TooltipTitle>Attendance Details</TooltipTitle>
+              {attendanceDetails?.map((record, index) => (
+                <TooltipItem key={index}>
+                  <TooltipDate>{new Date(record.date).toLocaleDateString()}</TooltipDate>
+                  <TooltipStatus present={record.present}>
+                    {record.present ? 'Present' : 'Absent'}
+                  </TooltipStatus>
+                </TooltipItem>
+              ))}
+            </TooltipContent>
+          </AttendanceTooltip>
+        </CardValue>
         <CardSubtext>Overall Attendance Rate</CardSubtext>
       </SummaryCard>
 
