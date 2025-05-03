@@ -156,6 +156,7 @@ const StudentDashboard = () => {
         throw new Error('Student data not found. Please login again.');
       }
       const profileResponse = await getStudentProfile();
+      console.log("important : ",profileResponse)
       const { student, progress } = profileResponse.data;
       setStudentData(student);
       // Map progress to modules for dashboard

@@ -87,12 +87,10 @@ export const getStudentModules = () => {
 };
 export const getModuleStudents = (moduleId) => api.get(`/admin/students/module/${moduleId}`);
 
-
 export const getStudentDetails = async (studentId) => {
   const response = await api.get(`/student/${studentId}`);
   return response.data;
 };
-
 export const getStudentModulePerformance = async (studentId, moduleId) => {
   const response = await api.get(`/student/${studentId}/module/${moduleId}`);
   return response.data;
