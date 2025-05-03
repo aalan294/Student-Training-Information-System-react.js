@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { getStudentModules, getModuleLeaderboard } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import api from '../services/api';
 
 const Container = styled.div`
   padding: 2rem;
@@ -146,6 +147,15 @@ const ErrorMessage = styled.div`
   margin-bottom: 1rem;
 `;
 
+const SuccessMessage = styled.div`
+  padding: 1rem;
+  background-color: #dcfce7;
+  border: 1px solid #bbf7d0;
+  border-radius: 0.375rem;
+  color: #16a34a;
+  margin-bottom: 1rem;
+`;
+
 const CurrentStudentHighlight = styled.div`
   background-color: #eff6ff;
   border: 2px solid #3b82f6;
@@ -190,6 +200,141 @@ const TotalStudents = styled.div`
   margin-top: 0.5rem;
 `;
 
+const PromoteButton = styled.button`
+  padding: 0.5rem 1rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+`;
+
+const PromotionModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background-color: white;
+  padding: 2rem;
+  border-radius: 0.5rem;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+`;
+
+const ModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+`;
+
+const ModalTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  
+  &:hover {
+    color: #111827;
+  }
+`;
+
+const BatchSelect = styled.select`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  
+  &:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  }
+`;
+
+const SubmitButton = styled.button`
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+
+  &:disabled {
+    background-color: #93c5fd;
+    cursor: not-allowed;
+  }
+`;
+
+const CheckboxCell = styled(TableCell)`
+  width: 40px;
+  text-align: center;
+`;
+
+const SelectAllCheckbox = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+`;
+
+const SelectButton = styled.button`
+  padding: 0.5rem 1rem;
+  background-color: ${props => props.isActive ? '#1d4ed8' : '#2563eb'};
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #1d4ed8;
+  }
+`;
+
 const AdminLeaderboard = () => {
   const [modules, setModules] = useState([]);
   const [selectedModule, setSelectedModule] = useState('');
@@ -199,6 +344,12 @@ const AdminLeaderboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showPromotionModal, setShowPromotionModal] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [selectedBatch, setSelectedBatch] = useState('');
+  const [promotionError, setPromotionError] = useState(null);
+  const [promotionSuccess, setPromotionSuccess] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -266,6 +417,73 @@ const AdminLeaderboard = () => {
       }))
     ] : [];
 
+  const handleSelectClick = () => {
+    setIsSelectionMode(!isSelectionMode);
+    if (!isSelectionMode) {
+      setSelectedStudents([]);
+    }
+  };
+
+  const handlePromoteClick = () => {
+    if (selectedStudents.length === 0) {
+      setPromotionError('Please select at least one student');
+      return;
+    }
+    setShowPromotionModal(true);
+    setSelectedBatch('');
+    setPromotionError(null);
+    setPromotionSuccess(null);
+  };
+
+  const handleClosePromotion = () => {
+    setShowPromotionModal(false);
+    setSelectedBatch('');
+    setPromotionError(null);
+    setPromotionSuccess(null);
+  };
+
+  const handlePromoteSubmit = async () => {
+    try {
+      if (!selectedBatch) {
+        setPromotionError('Please select a batch');
+        return;
+      }
+
+      await api.put('/admin/update-batch', {
+        studentIds: selectedStudents,
+        newBatch: selectedBatch
+      });
+      
+      setPromotionSuccess('Students promoted successfully');
+      handleClosePromotion();
+      setIsSelectionMode(false);
+      setSelectedStudents([]);
+      
+      // Refresh the leaderboard data
+      await fetchLeaderboardData();
+    } catch (err) {
+      setPromotionError(err.response?.data?.message || 'Failed to promote students');
+    }
+  };
+
+  const handleStudentSelect = (studentId) => {
+    setSelectedStudents(prev => {
+      if (prev.includes(studentId)) {
+        return prev.filter(id => id !== studentId);
+      } else {
+        return [...prev, studentId];
+      }
+    });
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedStudents(filteredData.map(student => student.studentId));
+    } else {
+      setSelectedStudents([]);
+    }
+  };
+
   if (loading && !selectedModule) {
     return (
       <Container>
@@ -278,6 +496,22 @@ const AdminLeaderboard = () => {
     <Container>
       <Header>
         <Title>Module Leaderboard</Title>
+        <ButtonGroup>
+          <SelectButton 
+            onClick={handleSelectClick}
+            isActive={isSelectionMode}
+          >
+            {isSelectionMode ? 'Cancel Selection' : 'Select Students'}
+          </SelectButton>
+          {isSelectionMode && (
+            <PromoteButton 
+              onClick={handlePromoteClick}
+              disabled={selectedStudents.length === 0}
+            >
+              Promote Selected ({selectedStudents.length})
+            </PromoteButton>
+          )}
+        </ButtonGroup>
       </Header>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -343,6 +577,15 @@ const AdminLeaderboard = () => {
         <LeaderboardTable>
           <TableHead>
             <tr>
+              {isSelectionMode && (
+                <TableHeader style={{ width: '40px' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedStudents.length === filteredData.length}
+                    onChange={handleSelectAll}
+                  />
+                </TableHeader>
+              )}
               <TableHeader>Rank</TableHeader>
               <TableHeader>Name</TableHeader>
               <TableHeader>Registration No</TableHeader>
@@ -353,6 +596,15 @@ const AdminLeaderboard = () => {
           <tbody>
             {filteredData.map((student, index) => (
               <TableRow key={student.studentId}>
+                {isSelectionMode && (
+                  <CheckboxCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedStudents.includes(student.studentId)}
+                      onChange={() => handleStudentSelect(student.studentId)}
+                    />
+                  </CheckboxCell>
+                )}
                 <RankCell>#{student.rank}</RankCell>
                 <TableCell>{student.name}</TableCell>
                 <TableCell>{student.regNo}</TableCell>
@@ -364,6 +616,39 @@ const AdminLeaderboard = () => {
             ))}
           </tbody>
         </LeaderboardTable>
+      )}
+
+      {showPromotionModal && (
+        <PromotionModal>
+          <ModalContent>
+            <ModalHeader>
+              <ModalTitle>Promote Students</ModalTitle>
+              <CloseButton onClick={handleClosePromotion}>&times;</CloseButton>
+            </ModalHeader>
+
+            <BatchSelect
+              value={selectedBatch}
+              onChange={(e) => setSelectedBatch(e.target.value)}
+            >
+              <option value="">Select Batch</option>
+              <option value="Marquee">Marquee</option>
+              <option value="Super Dream">Super Dream</option>
+              <option value="Dream">Dream</option>
+              <option value="Service">Service</option>
+              <option value="General">General</option>
+            </BatchSelect>
+
+            {promotionError && <ErrorMessage>{promotionError}</ErrorMessage>}
+            {promotionSuccess && <SuccessMessage>{promotionSuccess}</SuccessMessage>}
+
+            <SubmitButton
+              onClick={handlePromoteSubmit}
+              disabled={!selectedBatch}
+            >
+              Promote Selected Students
+            </SubmitButton>
+          </ModalContent>
+        </PromotionModal>
       )}
     </Container>
   );
