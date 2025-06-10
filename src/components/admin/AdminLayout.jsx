@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
+import { FaTachometerAlt, FaUserGraduate, FaChalkboardTeacher, FaClipboardList, FaUpload, FaTrophy, FaBuilding, FaUsersCog, FaHistory, FaSignOutAlt } from 'react-icons/fa';
 
 const LayoutContainer = styled.div`
   min-height: 100vh;
@@ -10,13 +11,14 @@ const LayoutContainer = styled.div`
 
 const Sidebar = styled.div`
   width: ${props => props.isOpen ? '250px' : '0'};
-  background-color: white;
+  background-color: #181f2a;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   transition: width 0.3s ease;
   overflow: hidden;
   position: fixed;
   height: 100vh;
   z-index: 1000;
+  font-family: 'Inter', 'Roboto', Arial, sans-serif;
 `;
 
 const MainContent = styled.div`
@@ -24,6 +26,8 @@ const MainContent = styled.div`
   margin-left: ${props => props.isOpen ? '250px' : '0'};
   transition: margin-left 0.3s ease;
   padding: 2rem;
+  background: linear-gradient(120deg, #f9fafb 60%, #e0e7ff 100%);
+  font-family: 'Inter', 'Roboto', Arial, sans-serif;
 `;
 
 const MenuButton = styled.button`
@@ -107,16 +111,21 @@ const MenuLink = styled(Link)`
   display: flex;
   align-items: center;
   padding: 0.75rem 1rem;
-  color: ${props => props.active ? '#2563eb' : '#4b5563'};
+  color: ${props => props.active ? '#fff' : '#b0b8c9'};
   text-decoration: none;
   border-radius: 0.375rem;
-  font-weight: ${props => props.active ? '500' : 'normal'};
-  background-color: ${props => props.active ? '#eff6ff' : 'transparent'};
+  font-weight: ${props => props.active ? '600' : 'normal'};
+  background-color: ${props => props.active ? '#2563eb' : 'transparent'};
   transition: all 0.2s ease;
-
+  font-size: 1.08rem;
+  margin-bottom: 0.25rem;
+  svg {
+    margin-right: 14px;
+    font-size: 1.2em;
+  }
   &:hover {
-    background-color: ${props => props.active ? '#eff6ff' : '#f3f4f6'};
-    color: ${props => props.active ? '#2563eb' : '#1f2937'};
+    background-color: #232b3e;
+    color: #fff;
   }
 `;
 
@@ -133,7 +142,12 @@ const LogoutButton = styled.button`
   text-align: left;
   cursor: pointer;
   font-size: 1rem;
-
+  margin-top: 2rem;
+  font-family: inherit;
+  svg {
+    margin-right: 14px;
+    font-size: 1.2em;
+  }
   &:hover {
     background-color: #fee2e2;
   }
@@ -149,13 +163,16 @@ const AdminLayout = ({ children }) => {
     navigate('/admin/login');
   };
 
-  const menuItems = [
-    { path: '/admin/dashboard', label: 'Dashboard' },
-    { path: '/admin/students', label: 'Students' },
-    { path: '/admin/leaderboard', label: 'Leaderboard' },
-    { path: '/admin/bulk-upload', label: 'Bulk Upload' },
-    { path: '/admin/scores', label: 'Scores' },
-    { path: '/admin/training', label: 'Training' },
+  const navigation = [
+    { name: 'Dashboard', href: '/admin/dashboard', icon: <FaTachometerAlt /> },
+    { name: 'Students', href: '/admin/students', icon: <FaUserGraduate /> },
+    { name: 'Training', href: '/admin/training', icon: <FaChalkboardTeacher /> },
+    { name: 'Scores', href: '/admin/scores', icon: <FaClipboardList /> },
+    { name: 'Bulk Upload', href: '/admin/bulk-upload', icon: <FaUpload /> },
+    { name: 'Leaderboard', href: '/admin/leaderboard', icon: <FaTrophy /> },
+    { name: 'Venues', href: '/admin/venues', icon: <FaBuilding /> },
+    { name: 'Staff', href: '/admin/staff', icon: <FaUsersCog /> },
+    { name: 'Attendance History', href: '/admin/attendance-history', icon: <FaHistory /> },
   ];
 
   return (
@@ -170,14 +187,15 @@ const AdminLayout = ({ children }) => {
 
       <Sidebar isOpen={isOpen}>
         <MenuList>
-          {menuItems.map((item) => (
-            <MenuItem key={item.path}>
+          {navigation.map((item) => (
+            <MenuItem key={item.href}>
               <MenuLink
-                to={item.path}
-                active={location.pathname === item.path}
+                to={item.href}
+                active={location.pathname === item.href}
                 onClick={() => setIsOpen(false)}
               >
-                {item.label}
+                {item.icon && <span style={{marginRight: 10}}>{item.icon}</span>}
+                {item.name}
               </MenuLink>
             </MenuItem>
           ))}

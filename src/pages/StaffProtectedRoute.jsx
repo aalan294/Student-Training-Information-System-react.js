@@ -1,0 +1,3 @@
+import { FaLock } from 'react-icons/fa';
+// ... existing code ...
+// If you want to show a loading or locked icon, add it to the fallback UI. 

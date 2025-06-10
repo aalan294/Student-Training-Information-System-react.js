@@ -1,6 +1,7 @@
+
 import axios from 'axios';
 
-const API_BASE_URL = "https://student-training-information-system.onrender.com";
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3500';
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -13,13 +14,19 @@ const api = axios.create({
 // Add request interceptor to include auth token
 api.interceptors.request.use(
   (config) => {
-    // Check if the request is for student endpoints
+    // Check if the request is for student, staff, or admin endpoints
     const isStudentEndpoint = config.url.startsWith('/student');
+    const isStaffEndpoint = config.url.startsWith('/staff');
     
     // Get the appropriate token based on the endpoint
-    const token = isStudentEndpoint 
-      ? localStorage.getItem('studentToken')
-      : localStorage.getItem('adminToken');
+    let token;
+    if (isStudentEndpoint) {
+      token = localStorage.getItem('studentToken');
+    } else if (isStaffEndpoint) {
+      token = localStorage.getItem('staffToken');
+    } else {
+      token = localStorage.getItem('adminToken');
+    }
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -43,10 +50,16 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Clear the appropriate token and data based on the endpoint
       const isStudentEndpoint = error.config.url.startsWith('/student');
+      const isStaffEndpoint = error.config.url.startsWith('/staff');
+      
       if (isStudentEndpoint) {
         localStorage.removeItem('studentToken');
         localStorage.removeItem('studentData');
         window.location.href = '/student/login';
+      } else if (isStaffEndpoint) {
+        localStorage.removeItem('staffToken');
+        localStorage.removeItem('staffData');
+        window.location.href = '/staff/login';
       } else {
         localStorage.removeItem('adminToken');
         window.location.href = '/admin/login';
@@ -163,5 +176,16 @@ export const getModuleLeaderboard = async (moduleId, examType) => {
     }
   });
 };
+
+// Venue Management APIs
+export const registerVenue = (venueData) => api.post('/admin/venues', venueData);
+export const getAllVenues = () => api.get('/admin/venues');
+export const assignStaffToVenue = (staffId, venueId) => api.post('/admin/staff/assign', { staffId, venueId });
+export const unassignStaffFromVenue = (staffId) => api.post('/admin/staff/unassign', { staffId });
+export const getAllStaff = () => api.get('/admin/staff');
+
+export const getVenueStudents = () => api.get('/staff/venue-students');
+export const markAttendance = (date, presentStudentIds) => api.post('/staff/mark-attendance', { date, presentStudentIds });
+export const getVenueLeaderboard = () => api.get('/staff/venue-leaderboard');
 
 export default api;

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { getAllStudents } from '../services/api';
+import { getAllStudents, getAllVenues, getAllStaff } from '../services/api';
 import StudentDetailsModal from '../components/admin/StudentDetailsModal';
 import { useNavigate } from 'react-router-dom';
+import { FaUserGraduate } from 'react-icons/fa';
 
 const Container = styled.div`
   padding: 2rem;
@@ -87,6 +88,22 @@ const ErrorMessage = styled.div`
 const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service', 'General'];
 const departmentOptions = ['CSE', 'IT', 'MECH', 'EEE', 'ECE', 'BIOTECH', 'CIVIL'];
 
+const StaffBox = styled.div`
+  background: #22c55e;
+  color: #fff;
+  border-radius: 0.75rem;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+`;
+const VenueFilterSelect = styled(Select)`
+  max-width: 250px;
+`;
+
 const Students = () => {
   const [students, setStudents] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
@@ -100,11 +117,16 @@ const Students = () => {
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [venues, setVenues] = useState([]);
+  const [staff, setStaff] = useState([]);
+  const [selectedVenue, setSelectedVenue] = useState('');
 
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchStudents();
+    fetchVenues();
+    fetchStaff();
   }, []);
 
   const fetchStudents = async () => {
@@ -118,6 +140,24 @@ const Students = () => {
       setError('Failed to fetch students');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchVenues = async () => {
+    try {
+      const res = await getAllVenues();
+      setVenues(res.data.venues.filter(v => v.status === 'assigned'));
+    } catch (err) {
+      setVenues([]);
+    }
+  };
+
+  const fetchStaff = async () => {
+    try {
+      const res = await getAllStaff();
+      setStaff(res.data.staff);
+    } catch (err) {
+      setStaff([]);
     }
   };
 
@@ -151,8 +191,14 @@ const Students = () => {
       );
     }
 
+    if (selectedVenue) {
+      filtered = filtered.filter(student => {
+        return student.venues?.some(v => v.venueId === selectedVenue);
+      });
+    }
+
     setFilteredStudents(filtered);
-  }, [students, selectedBatch, selectedDepartment, selectedYear, searchQuery]);
+  }, [students, selectedBatch, selectedDepartment, selectedYear, searchQuery, selectedVenue]);
 
   const handleStudentClick = (student) => {
     navigate(`/admin/students/${student._id}/dashboard`);
@@ -166,6 +212,11 @@ const Students = () => {
   const batchOptions = batchTypes;
   const departmentOptionsList = departmentOptions;
   const yearOptions = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() + i);
+
+  // Find staff assigned to selected venue
+  const assignedStaff = selectedVenue
+    ? staff.find(s => s.venue && s.venue.id === selectedVenue)
+    : null;
 
   if (loading) {
     return (
@@ -204,6 +255,15 @@ const Students = () => {
         <Title>Students</Title>
         
         <FilterContainer>
+          <VenueFilterSelect
+            value={selectedVenue}
+            onChange={e => setSelectedVenue(e.target.value)}
+          >
+            <option value="">All Venues</option>
+            {venues.map(venue => (
+              <option key={venue._id} value={venue._id}>{venue.name}</option>
+            ))}
+          </VenueFilterSelect>
           <Select
             value={selectedBatch}
             onChange={(e) => setSelectedBatch(e.target.value)}
@@ -213,7 +273,6 @@ const Students = () => {
               <option key={batch} value={batch}>{batch}</option>
             ))}
           </Select>
-
           <Select
             value={selectedDepartment}
             onChange={(e) => setSelectedDepartment(e.target.value)}
@@ -223,7 +282,6 @@ const Students = () => {
               <option key={dept} value={dept}>{dept}</option>
             ))}
           </Select>
-
           <Select
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
@@ -233,7 +291,6 @@ const Students = () => {
               <option key={year} value={year}>{year}</option>
             ))}
           </Select>
-
           <input
             type="text"
             placeholder="Search students..."
@@ -248,6 +305,15 @@ const Students = () => {
             }}
           />
         </FilterContainer>
+
+        {selectedVenue && assignedStaff && (
+          <StaffBox>
+            Assigned Staff: {assignedStaff.name} ({assignedStaff.email})
+            <span style={{marginLeft: '1.5rem', fontWeight: 400, background: '#fff', color: '#22c55e', borderRadius: '8px', padding: '0.25rem 0.75rem'}}>
+              Students: {filteredStudents.length}
+            </span>
+          </StaffBox>
+        )}
 
         <Table>
           <TableHead>

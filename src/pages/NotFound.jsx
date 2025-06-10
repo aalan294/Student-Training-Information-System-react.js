@@ -1,5 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
+import { FaExclamationTriangle } from 'react-icons/fa';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -18,6 +19,7 @@ const Title = styled.h1`
 const NotFound = () => {
   return (
     <Container>
+      <FaExclamationTriangle size={100} color="#e5e7eb" />
       <Title>404 - Page Not Found</Title>
     </Container>
   );

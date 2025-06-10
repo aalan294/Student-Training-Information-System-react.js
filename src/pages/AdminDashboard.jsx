@@ -4,6 +4,7 @@ import { getAllStudents, getStudentDetails } from '../services/api';
 import CreateModuleModal from '../components/admin/CreateModuleModal';
 import StudentDetailsModal from '../components/admin/StudentDetailsModal';
 import { useNavigate } from 'react-router-dom';
+import { FaTachometerAlt, FaUserGraduate, FaBuilding, FaUsersCog, FaTrophy } from 'react-icons/fa';
 
 const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service', 'General'];
 
@@ -252,7 +253,10 @@ const AdminDashboard = () => {
         
         <StatsGrid>
           <TotalStatsCard>
-            <StatsLabel isTotal>Total Students</StatsLabel>
+            <StatsLabel isTotal>
+              <FaTachometerAlt size={20} style={{ marginRight: '0.5rem' }} />
+              Total Students
+            </StatsLabel>
             <StatsValue isTotal>
               {isLoading ? 'Loading...' : counts.total || 0}
             </StatsValue>
@@ -262,7 +266,10 @@ const AdminDashboard = () => {
               key={batch}
               onClick={() => fetchStudentsByBatch(batch)}
             >
-              <StatsLabel>{batch}</StatsLabel>
+              <StatsLabel>
+                <FaUserGraduate size={20} style={{ marginRight: '0.5rem' }} />
+                {batch}
+              </StatsLabel>
               <StatsValue>
                 {isLoading ? 'Loading...' : counts[batch] || 0}
               </StatsValue>

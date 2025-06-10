@@ -1,6 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { SampleDataProvider } from './utils/sampleDataContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import StudentView from './pages/StudentView';
@@ -9,13 +11,23 @@ import AdminLayout from './components/admin/AdminLayout';
 import BulkUpload from './components/admin/BulkUpload';
 import ScoreUpload from './components/admin/ScoreUpload';
 import TrainingModuleView from './components/admin/TrainingModuleView';
+import VenueManagement from './components/admin/VenueManagement';
 import Students from './pages/Students';
 import StudentLogin from './pages/StudentLogin';
 import StudentDashboard from './pages/StudentDashboard';
 import ProtectedRoute from './components/student/ProtectedRoute';
 import AdminStudentDashboard from './pages/AdminStudentDashboard';
-import Leaderboard from './pages/Leaderboard';
+import Leaderboard from './pages/staff/Leaderboard';
 import AdminLeaderboard from './pages/AdminLeaderboard';
+import StaffManagement from './components/admin/StaffManagement';
+import StaffLogin from './pages/StaffLogin';
+import StaffProtectedRoute from './routes/StaffProtectedRoute';
+import StaffLayout from './components/staff/StaffLayout';
+import StaffDashboard from './pages/StaffDashboard';
+import StaffAttendance from './pages/StaffAttendance';
+import StaffStudents from './pages/StaffStudents';
+import AttendanceHistory from './pages/staff/AttendanceHistory';
+import AttendanceHistoryAdmin from './pages/admin/AttendanceHistory';
 
 const PrivateRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
@@ -47,6 +59,9 @@ function App() {
             <Route path="bulk-upload" element={<BulkUpload />} />
             <Route path="scores" element={<ScoreUpload />} />
             <Route path="training" element={<TrainingModuleView />} />
+            <Route path="venues" element={<VenueManagement />} />
+            <Route path="staff" element={<StaffManagement />} />
+            <Route path="attendance-history" element={<AttendanceHistoryAdmin />} />
           </Route>
           
           {/* Student Routes */}
@@ -63,10 +78,30 @@ function App() {
             <Route path="leaderboard" element={<Leaderboard />} />
           </Route>
 
+          {/* Staff Routes */}
+          <Route path="/staff/login" element={<StaffLogin />} />
+          <Route
+            path="/staff"
+            element={
+              <StaffProtectedRoute>
+                <StaffLayout>
+                  <Outlet />
+                </StaffLayout>
+              </StaffProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/staff/attendance" replace />} />
+            <Route path="attendance" element={<StaffAttendance />} />
+            <Route path="students" element={<StaffStudents />} />
+            <Route path="leaderboard" element={<Leaderboard />} />
+            <Route path="attendance-history" element={<AttendanceHistory />} />
+          </Route>
+
           {/* Public Routes */}
           <Route path="/" element={<Navigate to="/student/login" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <ToastContainer />
       </SampleDataProvider>
     </Router>
   );

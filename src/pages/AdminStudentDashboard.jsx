@@ -5,6 +5,7 @@ import { getStudentDetails } from '../services/api';
 import StudentAvatar from '../components/student/StudentAvatar';
 import ProgressSummary from '../components/student/ProgressSummary';
 import TrainingModulesList from '../components/student/TrainingModulesList';
+import { FaUserGraduate, FaTrophy, FaClipboardList } from 'react-icons/fa';
 
 const Container = styled.div`
   padding: 2rem;

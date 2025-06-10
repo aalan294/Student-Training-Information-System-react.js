@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { getStudentModules, getModuleLeaderboard } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { FaTrophy } from 'react-icons/fa';
 
 const Container = styled.div`
   padding: 2rem;
@@ -586,7 +587,10 @@ const AdminLeaderboard = () => {
                   />
                 </TableHeader>
               )}
-              <TableHeader>Rank</TableHeader>
+              <TableHeader>
+                <FaTrophy size={20} style={{ marginRight: '0.5rem' }} />
+                Rank
+              </TableHeader>
               <TableHeader>Name</TableHeader>
               <TableHeader>Registration No</TableHeader>
               <TableHeader>Department</TableHeader>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { loginStudent } from '../services/api';
+import { FaEnvelope, FaLock } from 'react-icons/fa';
 
 const Container = styled.div`
   min-height: 100vh;

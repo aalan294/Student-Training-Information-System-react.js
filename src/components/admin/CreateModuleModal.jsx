@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { addModule } from '../../services/api';
+import { addModule, getAllVenues } from '../../services/api';
 
 const ModalOverlay = styled.div`
   position: fixed;
@@ -122,6 +122,56 @@ const ErrorMessage = styled.div`
   margin-top: 0.5rem;
 `;
 
+const VenueSelectRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+const VenueTag = styled.span`
+  background: #6366f1;
+  color: #fff;
+  border-radius: 12px;
+  padding: 0.25rem 0.75rem;
+  margin-right: 0.5rem;
+  font-size: 0.85em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+const RemoveTag = styled.button`
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1em;
+  cursor: pointer;
+  margin-left: 0.25rem;
+`;
+const AddVenueButton = styled.button`
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: 0.5rem;
+`;
+const VenueDropdown = styled.select`
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid #d1d5db;
+  font-size: 0.95em;
+`;
+const VenueSummary = styled.div`
+  margin-top: 0.5rem;
+  font-size: 0.95em;
+  color: #374151;
+`;
+
 const CreateModuleModal = ({ isOpen, onClose, studentIds, batchName }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -131,6 +181,54 @@ const CreateModuleModal = ({ isOpen, onClose, studentIds, batchName }) => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [venues, setVenues] = useState([]);
+  const [assignedVenues, setAssignedVenues] = useState([]);
+  const [venueDropdownOpen, setVenueDropdownOpen] = useState(false);
+  const [venueToAdd, setVenueToAdd] = useState('');
+  const [venueStudentMap, setVenueStudentMap] = useState({});
+  const [dropdownRef, setDropdownRef] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchVenues();
+      setAssignedVenues([]);
+      setVenueToAdd('');
+      setVenueDropdownOpen(false);
+      setError('');
+      setFormData({ title: '', description: '', durationDays: '', examsCount: '' });
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    // Map students to venues by capacity whenever assignedVenues or studentIds changes
+    if (assignedVenues.length > 0 && studentIds.length > 0) {
+      let map = {};
+      let idx = 0;
+      assignedVenues.forEach(venue => {
+        const cap = parseInt(venue.capacity);
+        map[venue._id] = studentIds.slice(idx, idx + cap);
+        idx += cap;
+      });
+      setVenueStudentMap(map);
+    } else {
+      setVenueStudentMap({});
+    }
+  }, [assignedVenues, studentIds]);
+
+  useEffect(() => {
+    if (venueDropdownOpen && dropdownRef) {
+      dropdownRef.focus();
+    }
+  }, [venueDropdownOpen, dropdownRef]);
+
+  const fetchVenues = async () => {
+    try {
+      const res = await getAllVenues();
+      setVenues(res.data.venues.filter(v => v.status === 'assigned'));
+    } catch (err) {
+      setVenues([]);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -142,19 +240,43 @@ const CreateModuleModal = ({ isOpen, onClose, studentIds, batchName }) => {
     }));
   };
 
+  const handleAddVenue = () => {
+    if (!venueToAdd) return;
+    const venueObj = venues.find(v => v._id === venueToAdd);
+    if (venueObj && !assignedVenues.some(v => v._id === venueObj._id)) {
+      setAssignedVenues(prev => [...prev, venueObj]);
+    }
+    setVenueToAdd('');
+    setTimeout(() => setVenueDropdownOpen(true), 0); // keep open for next selection
+  };
+
+  const handleRemoveVenue = (venueId) => {
+    setAssignedVenues(prev => prev.filter(v => v._id !== venueId));
+  };
+
+  const handleDropdownChange = (e) => {
+    setVenueToAdd(e.target.value);
+    setTimeout(handleAddVenue, 100); // add after select
+  };
+
+  const allFieldsFilled =
+    formData.title.trim() &&
+    formData.description.trim() &&
+    formData.durationDays &&
+    formData.examsCount &&
+    assignedVenues.length > 0;
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
-
     try {
       const moduleData = {
         ...formData,
         durationDays: parseInt(formData.durationDays),
         examsCount: parseInt(formData.examsCount),
-        studentIds
+        venueStudentMap
       };
-
       await addModule(moduleData);
       onClose();
     } catch (err) {
@@ -163,6 +285,15 @@ const CreateModuleModal = ({ isOpen, onClose, studentIds, batchName }) => {
       setIsLoading(false);
     }
   };
+
+  // Venue summary for preview
+  const venueSummary = assignedVenues.map((venue, i) => (
+    <VenueSummary key={venue._id}>
+      <b>{venue.name}</b> (Capacity: {venue.capacity}): {venueStudentMap[venue._id]?.length || 0} students
+    </VenueSummary>
+  ));
+  const totalAssigned = Object.values(venueStudentMap).reduce((acc, arr) => acc + (arr?.length || 0), 0);
+  const unassignedCount = studentIds.length - totalAssigned;
 
   return (
     <ModalOverlay onClick={onClose}>
@@ -217,13 +348,46 @@ const CreateModuleModal = ({ isOpen, onClose, studentIds, batchName }) => {
             />
           </FormGroup>
 
+          {/* Venues Field */}
+          <FormGroup>
+            <Label>Venues</Label>
+            <VenueSelectRow>
+              {assignedVenues.map(venue => (
+                <VenueTag key={venue._id}>
+                  {venue.name}
+                  <RemoveTag type="button" onClick={() => handleRemoveVenue(venue._id)} title="Remove">&times;</RemoveTag>
+                </VenueTag>
+              ))}
+              <AddVenueButton type="button" title="Add Venue" onClick={() => setVenueDropdownOpen(true)}>+</AddVenueButton>
+              {venueDropdownOpen && (
+                <VenueDropdown
+                  ref={el => setDropdownRef(el)}
+                  value={venueToAdd}
+                  onChange={handleDropdownChange}
+                  autoFocus
+                >
+                  <option value="">Select Venue</option>
+                  {venues.filter(v => !assignedVenues.some(av => av._id === v._id)).map(venue => (
+                    <option key={venue._id} value={venue._id}>{venue.name} (Capacity: {venue.capacity})</option>
+                  ))}
+                </VenueDropdown>
+              )}
+            </VenueSelectRow>
+            {venueSummary}
+            {unassignedCount > 0 && (
+              <VenueSummary style={{ color: '#dc2626' }}>
+                {unassignedCount} students will not be assigned to any venue (not enough capacity).
+              </VenueSummary>
+            )}
+          </FormGroup>
+
           {error && <ErrorMessage>{error}</ErrorMessage>}
 
           <ButtonGroup>
             <Button type="button" variant="secondary" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || !allFieldsFilled}>
               {isLoading ? 'Creating...' : 'Create Module'}
             </Button>
           </ButtonGroup>

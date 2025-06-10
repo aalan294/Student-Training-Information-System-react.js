@@ -225,7 +225,6 @@ const StudentDashboard = () => {
       </MenuButton>
 
       <MenuList isOpen={isMenuOpen}>
-        <MenuItem onClick={handleLeaderboard}>Leaderboard</MenuItem>
         <MenuItem onClick={handleLogout}>Logout</MenuItem>
       </MenuList>
 
