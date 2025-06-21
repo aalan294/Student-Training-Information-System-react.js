@@ -1,8 +1,9 @@
 
 import axios from 'axios';
 
+
 const API_BASE_URL = "https://student-training-information-system.onrender.com/";
-//git testing
+
 
 // Create axios instance with base configuration
 const api = axios.create({
