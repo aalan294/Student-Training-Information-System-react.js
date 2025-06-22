@@ -14,6 +14,14 @@ const Container = styled.div`
   gap: 2rem;
 `;
 
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
 const Card = styled.div`
   background-color: white;
   border-radius: 0.5rem;
@@ -25,7 +33,27 @@ const Title = styled.h2`
   font-size: 1.5rem;
   font-weight: 700;
   color: #111827;
-  margin-bottom: 2rem;
+  margin: 0;
+`;
+
+const FilterGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+`;
+
+const Select = styled.select`
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: white;
+  font-size: 0.875rem;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  }
 `;
 
 const StatsGrid = styled.div`
@@ -169,6 +197,7 @@ const ActionButton = styled.button`
 `;
 
 const AdminDashboard = () => {
+  const [allStudents, setAllStudents] = useState([]);
   const [counts, setCounts] = useState({});
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [students, setStudents] = useState([]);
@@ -177,54 +206,71 @@ const AdminDashboard = () => {
   const [isCreateModuleModalOpen, setIsCreateModuleModalOpen] = useState(false);
   const [isStudentDetailsModalOpen, setIsStudentDetailsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [passoutYears, setPassoutYears] = useState([]);
+  const [selectedPassoutYear, setSelectedPassoutYear] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchAllStudents();
   }, []);
 
+  useEffect(() => {
+    if (allStudents.length > 0) {
+      const uniqueYears = [...new Set(allStudents.map(s => s.passoutYear))].sort((a, b) => b - a);
+      setPassoutYears(uniqueYears);
+      if (uniqueYears.length > 0 && !selectedPassoutYear) {
+        setSelectedPassoutYear(uniqueYears[0]);
+      }
+    }
+  }, [allStudents]);
+
+  useEffect(() => {
+    if (selectedPassoutYear) {
+      updateCountsAndStudents();
+    }
+  }, [selectedPassoutYear]);
+
   const fetchAllStudents = async () => {
     try {
       setIsLoading(true);
       setError(null);
       const response = await getAllStudents();
-      const allStudents = response.data.students;
-      
-      // Calculate counts
-      const totalStudents = allStudents.length;
-      const batchCounts = batchTypes.reduce((acc, batch) => {
-        acc[batch] = allStudents.filter(s => s.batch === batch).length;
-        return acc;
-      }, {});
-      
-      setCounts({ total: totalStudents, ...batchCounts });
-      
-      // If a batch is selected, update the filtered students
-      if (selectedBatch) {
-        const filteredStudents = allStudents.filter(s => s.batch === selectedBatch);
-        setStudents(filteredStudents);
-      }
+      setAllStudents(response.data.students);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch students data');
-      setCounts({});
-      setStudents([]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const updateCountsAndStudents = () => {
+    const yearFilteredStudents = allStudents.filter(s => s.passoutYear == selectedPassoutYear);
+    const totalStudents = yearFilteredStudents.length;
+    const batchCounts = batchTypes.reduce((acc, batch) => {
+      acc[batch] = yearFilteredStudents.filter(s => s.batch === batch).length;
+      return acc;
+    }, {});
+    setCounts({ total: totalStudents, ...batchCounts });
+
+    if (selectedBatch) {
+      const batchFilteredStudents = yearFilteredStudents.filter(s => s.batch === selectedBatch);
+      setStudents(batchFilteredStudents);
+    } else {
+      setStudents([]);
+    }
+  };
+
+  const handleYearChange = (e) => {
+    const year = e.target.value;
+    setSelectedPassoutYear(year);
+    setSelectedBatch(null); // Reset batch selection when year changes
+    setStudents([]); // Clear student list
+  };
+  
   const fetchStudentsByBatch = (batch) => {
     setSelectedBatch(batch);
-    setStudents([]); // Clear current students
-    
-    // Filter students from the API response
-    getAllStudents().then(response => {
-      const filteredStudents = response.data.students.filter(s => s.batch === batch);
-      setStudents(filteredStudents);
-    }).catch(err => {
-      setError(err.response?.data?.message || 'Failed to fetch students data');
-      setStudents([]);
-    });
+    const filteredStudents = allStudents.filter(s => s.passoutYear == selectedPassoutYear && s.batch === batch);
+    setStudents(filteredStudents);
   };
 
   const handleCreateModule = () => {
@@ -249,44 +295,54 @@ const AdminDashboard = () => {
   return (
     <Container>
       <Card>
-        <Title>Admin Dashboard</Title>
-        
-        <StatsGrid>
-          <TotalStatsCard>
-            <StatsLabel isTotal>
-              <FaTachometerAlt size={20} style={{ marginRight: '0.5rem' }} />
-              Total Students
-            </StatsLabel>
-            <StatsValue isTotal>
-              {isLoading ? 'Loading...' : counts.total || 0}
-            </StatsValue>
-          </TotalStatsCard>
-          {batchTypes.map(batch => (
-            <BatchStatsCard
-              key={batch}
-              onClick={() => fetchStudentsByBatch(batch)}
-            >
-              <StatsLabel>
-                <FaUserGraduate size={20} style={{ marginRight: '0.5rem' }} />
-                {batch}
-              </StatsLabel>
-              <StatsValue>
-                {isLoading ? 'Loading...' : counts[batch] || 0}
-              </StatsValue>
-            </BatchStatsCard>
-          ))}
-        </StatsGrid>
+        <Header>
+          <Title>Admin Dashboard</Title>
+          {passoutYears.length > 0 && (
+            <FilterGroup>
+              <label htmlFor="year-select">Batch Year:</label>
+              <Select id="year-select" value={selectedPassoutYear} onChange={handleYearChange}>
+                {passoutYears.map(year => (
+                  <option key={year} value={year}>{year}</option>
+                ))}
+              </Select>
+            </FilterGroup>
+          )}
+        </Header>
       </Card>
 
+      <StatsGrid>
+        <TotalStatsCard>
+          <StatsLabel isTotal>
+            <FaTachometerAlt size={20} style={{ marginRight: '0.5rem' }} />
+            Total Students
+          </StatsLabel>
+          <StatsValue isTotal>
+            {isLoading ? 'Loading...' : counts.total || 0}
+          </StatsValue>
+        </TotalStatsCard>
+        {batchTypes.map(batch => (
+          <BatchStatsCard key={batch} onClick={() => fetchStudentsByBatch(batch)}>
+            <StatsLabel>
+              <FaUserGraduate size={20} style={{ marginRight: '0.5rem' }} />
+              {batch}
+            </StatsLabel>
+            <StatsValue>
+              {isLoading ? 'Loading...' : counts[batch] || 0}
+            </StatsValue>
+          </BatchStatsCard>
+        ))}
+      </StatsGrid>
+      
       {selectedBatch && (
         <Card>
           <TableHeader>
-            <div>
-              <TableTitle>{selectedBatch} Students</TableTitle>
-              <StudentCount>{students.length} students</StudentCount>
-            </div>
-            <ActionButton onClick={handleCreateModule}>
-              Create Training Module
+            <TableTitle>{selectedBatch} Students ({selectedPassoutYear})</TableTitle>
+            <StudentCount>{students.length} students</StudentCount>
+            <ActionButton 
+              onClick={handleCreateModule} 
+              disabled={!selectedBatch || students.length === 0}
+            >
+              Create Module for this Batch
             </ActionButton>
           </TableHeader>
           <TableContainer>

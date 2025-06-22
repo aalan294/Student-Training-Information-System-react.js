@@ -252,35 +252,38 @@ const AttendanceHistory = () => {
           <SidebarTitle>Attendance History</SidebarTitle>
         </SidebarHeader>
         <DayList>
-          {attendanceHistory.map((day, idx) => (
-            <DayItem
-              key={day.date}
-              selected={idx === selectedDayIdx}
-              onClick={() => setSelectedDayIdx(idx)}
-            >
-              <DayDate>
-                {new Date(day.date).toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric'
-                })}
-              </DayDate>
-              <DayStats>
-                <Count type="present">
-                  <FaCheckCircle />
-                  {day.forenoon?.present?.length + day.afternoon?.present?.length || 0}
-                </Count>
-                <Count type="absent">
-                  <FaTimesCircle />
-                  {day.forenoon?.absent?.length + day.afternoon?.absent?.length || 0}
-                </Count>
-                <Count type="od">
-                  <FaUserTie />
-                  {day.forenoon?.od?.length + day.afternoon?.od?.length || 0}
-                </Count>
-              </DayStats>
-            </DayItem>
-          ))}
+          {attendanceHistory.map((day, index) => {
+            const date = new Date(day.date);
+            const formattedDate = date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            
+            const summary = day.summary;
+
+            return (
+              <DayItem 
+                key={index} 
+                selected={selectedDayIdx === index}
+                onClick={() => setSelectedDayIdx(index)}
+              >
+                <DayDate>{formattedDate}</DayDate>
+                {summary ? (
+                  <DayStats>
+                    <Count type="present">
+                      <FaCheckCircle />
+                      {summary.present + summary.partial}
+                    </Count>
+                    <Count type="absent">
+                      <FaTimesCircle />
+                      {summary.absent}
+                    </Count>
+                    <Count type="od">
+                      <FaUserTie />
+                      {summary.onDuty}
+                    </Count>
+                  </DayStats>
+                ) : null}
+              </DayItem>
+            );
+          })}
         </DayList>
       </Sidebar>
 
