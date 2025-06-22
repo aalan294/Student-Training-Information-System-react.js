@@ -1,7 +1,8 @@
-
 import axios from 'axios';
 
-const API_BASE_URL = "https://student-training-information-system.onrender.com/";
+// const API_BASE_URL = "https://student-training-information-system.onrender.com/";
+const API_BASE_URL = "http://localhost:3500/";
+
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -185,7 +186,7 @@ export const unassignStaffFromVenue = (staffId) => api.post('/admin/staff/unassi
 export const getAllStaff = () => api.get('/admin/staff');
 
 export const getVenueStudents = () => api.get('/staff/venue-students');
-export const markAttendance = (date, presentStudentIds) => api.post('/staff/mark-attendance', { date, presentStudentIds });
+export const markAttendance = (date, session, attendanceData) => api.post('/staff/mark-attendance', { date, session, attendanceData });
 export const getVenueLeaderboard = () => api.get('/staff/venue-leaderboard');
 
 export default api;

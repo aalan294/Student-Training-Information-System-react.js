@@ -131,9 +131,35 @@ const AttendanceDate = styled.span`
   font-weight: 500;
 `;
 
-const AttendanceStatus = styled.span`
-  color: ${props => props.present ? '#059669' : '#dc2626'};
+const AttendanceSessions = styled.div`
+  display: flex;
+  gap: 1rem;
+`;
+
+const SessionStatus = styled.span`
+  color: ${props => {
+    if (props.status === 'OD') return '#d97706';
+    if (props.status === 'Present') return '#059669';
+    if (props.status === 'Absent') return '#dc2626';
+    return '#6b7280';
+  }};
   font-weight: 500;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background: ${props => {
+    if (props.status === 'OD') return '#fef3c7';
+    if (props.status === 'Present') return '#dcfce7';
+    if (props.status === 'Absent') return '#fee2e2';
+    return '#f3f4f6';
+  }};
+`;
+
+const SessionLabel = styled.span`
+  color: #6b7280;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
 `;
 
 const ModuleDetailsModal = ({ module, details, onClose, loading, error }) => {
@@ -205,19 +231,40 @@ const ModuleDetailsModal = ({ module, details, onClose, loading, error }) => {
               <StatValue>{details.performance.attendance.percentage}%</StatValue>
             </StatCard>
             <StatCard>
-              <StatLabel>Present Days</StatLabel>
+              <StatLabel>Present Sessions</StatLabel>
               <StatValue>
-                {details.performance.attendance.presentDays} / {details.performance.attendance.totalDays}
+                {details.performance.attendance.presentSessions} / {details.performance.attendance.totalSessions}
+              </StatValue>
+            </StatCard>
+            <StatCard>
+              <StatLabel>On Duty Sessions</StatLabel>
+              <StatValue>
+                {details.performance.attendance.odSessions}
               </StatValue>
             </StatCard>
           </Grid>
           <AttendanceList>
             {details.performance.attendance.details?.map((record, index) => (
               <AttendanceItem key={index}>
-                <AttendanceDate>{new Date(record.date).toLocaleDateString()}</AttendanceDate>
-                <AttendanceStatus present={record.present}>
-                  {record.present ? 'Present' : 'Absent'}
-                </AttendanceStatus>
+                <AttendanceDate>{formatDate(record.date)}</AttendanceDate>
+                <AttendanceSessions>
+                  {record.forenoon && (
+                    <div>
+                      <SessionLabel>AM</SessionLabel>
+                      <SessionStatus status={record.forenoon.status}>
+                        {record.forenoon.status}
+                      </SessionStatus>
+                    </div>
+                  )}
+                  {record.afternoon && (
+                    <div>
+                      <SessionLabel>PM</SessionLabel>
+                      <SessionStatus status={record.afternoon.status}>
+                        {record.afternoon.status}
+                      </SessionStatus>
+                    </div>
+                  )}
+                </AttendanceSessions>
               </AttendanceItem>
             ))}
           </AttendanceList>
@@ -226,12 +273,12 @@ const ModuleDetailsModal = ({ module, details, onClose, loading, error }) => {
         <Section>
           <SectionTitle>Exam Scores</SectionTitle>
           <Grid>
-            {details.performance.examScores.map((score, index) => (
+            {details.performance.examScores?.map((exam, index) => (
               <StatCard key={index}>
-                <StatLabel>Exam {score.exam}</StatLabel>
+                <StatLabel>Exam {exam.exam}</StatLabel>
                 <StatValue>
-                  <ScoreValue score={score.score}>
-                    {score.score !== null ? `${score.score}%` : 'NA'}
+                  <ScoreValue score={exam.score}>
+                    {exam.score}%
                   </ScoreValue>
                 </StatValue>
               </StatCard>
