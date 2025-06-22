@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { bulkRegisterStudents, registerStudent } from '../../services/api';
+import { 
+  bulkRegisterStudents, 
+  registerStudent,
+  bulkRegisterStudentsWithDetails
+} from '../../services/api';
 
 const Container = styled.div`
   padding: 1.5rem;
@@ -14,8 +18,30 @@ const Container = styled.div`
 const Title = styled.h2`
   font-size: 1.5rem;
   font-weight: 600;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   color: #111827;
+`;
+
+const TabBar = styled.div`
+  display: flex;
+  border-bottom: 1px solid #d1d5db;
+  margin-bottom: 2rem;
+`;
+
+const TabButton = styled.button`
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  background-color: transparent;
+  color: ${props => props.active ? '#2563eb' : '#6b7280'};
+  border-bottom: 2px solid ${props => props.active ? '#2563eb' : 'transparent'};
+  cursor: pointer;
+  transition: all 150ms;
+  
+  &:hover {
+    color: #111827;
+  }
 `;
 
 const Form = styled.form`
@@ -121,28 +147,6 @@ const SuccessMessage = styled.div`
   margin-top: 0.5rem;
 `;
 
-const TabContainer = styled.div`
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 2rem;
-`;
-
-const Tab = styled.button`
-  padding: 0.5rem 1rem;
-  background-color: ${props => props.active ? '#2563eb' : '#f3f4f6'};
-  color: ${props => props.active ? 'white' : '#374151'};
-  border: 1px solid ${props => props.active ? '#2563eb' : '#d1d5db'};
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 150ms;
-
-  &:hover {
-    background-color: ${props => props.active ? '#1d4ed8' : '#e5e7eb'};
-  }
-`;
-
 const FormGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -157,22 +161,36 @@ const batchTypes = ['Marquee', 'Super Dream', 'Dream', 'Service', 'General'];
 const departmentOptions = ['CSE', 'IT', 'MECH', 'EEE', 'ECE', 'BIOTECH', 'CIVIL'];
 
 const BulkUpload = () => {
-  const [mode, setMode] = useState('bulk'); // 'bulk' or 'individual'
+  const [activeTab, setActiveTab] = useState('with-details');
+
+  return (
+    <Container>
+      <Title>Student Registration</Title>
+      <TabBar>
+        <TabButton active={activeTab === 'with-details'} onClick={() => setActiveTab('with-details')}>
+          Bulk with Details
+        </TabButton>
+        <TabButton active={activeTab === 'without-details'} onClick={() => setActiveTab('without-details')}>
+          Bulk without Details
+        </TabButton>
+        <TabButton active={activeTab === 'individual'} onClick={() => setActiveTab('individual')}>
+          Individual Entry
+        </TabButton>
+      </TabBar>
+
+      {activeTab === 'with-details' && <BulkWithDetailsForm />}
+      {activeTab === 'without-details' && <BulkWithoutDetailsForm />}
+      {activeTab === 'individual' && <IndividualForm />}
+    </Container>
+  );
+};
+
+// New Component for Bulk Upload WITH details in Excel
+const BulkWithDetailsForm = () => {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [batch, setBatch] = useState('');
-  const [passoutYear, setPassoutYear] = useState('');
-  const [department, setDepartment] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [individualForm, setIndividualForm] = useState({
-    name: '',
-    regNo: '',
-    email: '',
-    batch: '',
-    passoutYear: '',
-    department: ''
-  });
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -185,16 +203,7 @@ const BulkUpload = () => {
     setError('');
   };
 
-  const handleIndividualInputChange = (e) => {
-    const { name, value } = e.target;
-    setIndividualForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    setError('');
-  };
-
-  const handleBulkSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -204,33 +213,12 @@ const BulkUpload = () => {
       return;
     }
 
-    if (!batch) {
-      setError('Please select a batch');
-      return;
-    }
-
-    if (!passoutYear) {
-      setError('Please enter passout year');
-      return;
-    }
-
-    if (!department) {
-      setError('Please select a department');
-      return;
-    }
-
     try {
       setIsLoading(true);
-      console.log(department)
-      await bulkRegisterStudents(selectedFile, batch, passoutYear, department);
-      setSuccess('Students registered successfully');
-      // Reset form
+      const res = await bulkRegisterStudentsWithDetails(selectedFile);
+      setSuccess(res.message);
       setSelectedFile(null);
-      setBatch('');
-      setPassoutYear('');
-      setDepartment('');
-      // Reset file input
-      const fileInput = document.getElementById('excel-file');
+      const fileInput = document.getElementById('excel-file-with-details');
       if (fileInput) fileInput.value = '';
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to register students');
@@ -239,31 +227,136 @@ const BulkUpload = () => {
     }
   };
 
+  return (
+    <Form onSubmit={handleSubmit}>
+      <p>Upload an Excel file with columns: <strong>name, regNo, email, department, batch, passoutYear</strong>.</p>
+      <FormGroup>
+        <Label htmlFor="excel-file-with-details">Upload Excel File</Label>
+        <FileInputLabel>
+          <svg /* icon */ xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L6.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+          <FileName>{selectedFile ? selectedFile.name : 'Choose file'}</FileName>
+          <FileInput id="excel-file-with-details" type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
+        </FileInputLabel>
+      </FormGroup>
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      {success && <SuccessMessage>{success}</SuccessMessage>}
+      <Button type="submit" disabled={isLoading || !selectedFile}>
+        {isLoading ? 'Uploading...' : 'Upload Students'}
+      </Button>
+    </Form>
+  );
+};
+
+// Existing Bulk Upload Logic (without details in Excel)
+const BulkWithoutDetailsForm = () => {
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [batch, setBatch] = useState('');
+  const [passoutYear, setPassoutYear] = useState('');
+  const [department, setDepartment] = useState('');
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file && !file.name.match(/\.(xlsx|xls)$/)) {
+      setError('Please upload only Excel files (.xlsx or .xls)');
+      setSelectedFile(null);
+      return;
+    }
+    setSelectedFile(file);
+    setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(''); setSuccess('');
+    if (!selectedFile) { setError('Please select an Excel file'); return; }
+    if (!batch) { setError('Please select a batch'); return; }
+    if (!passoutYear) { setError('Please enter passout year'); return; }
+    if (!department) { setError('Please select a department'); return; }
+
+    try {
+      setIsLoading(true);
+      await bulkRegisterStudents(selectedFile, batch, passoutYear, department);
+      setSuccess('Students registered successfully');
+      setSelectedFile(null); setBatch(''); setPassoutYear(''); setDepartment('');
+      const fileInput = document.getElementById('excel-file-no-details');
+      if (fileInput) fileInput.value = '';
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to register students');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Form onSubmit={handleSubmit}>
+      <p>Upload an Excel file with columns: <strong>name, regNo, email</strong>. Department and batch details will be applied to all students from the dropdowns below.</p>
+      <FormGroup>
+        <Label htmlFor="excel-file-no-details">Upload Excel File</Label>
+        <FileInputLabel>
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L6.707 6.707a1 1 0 01-1.414 0z" clipRule="evenodd" /></svg>
+          <FileName>{selectedFile ? selectedFile.name : 'Choose file'}</FileName>
+          <FileInput id="excel-file-no-details" type="file" accept=".xlsx, .xls" onChange={handleFileChange} />
+        </FileInputLabel>
+      </FormGroup>
+
+      <FormGrid>
+        <FormGroup>
+          <Label htmlFor="batch-select">Batch</Label>
+          <Select id="batch-select" value={batch} onChange={(e) => setBatch(e.target.value)}>
+            <option value="">Select Batch</option>
+            {batchTypes.map(type => <option key={type} value={type}>{type}</option>)}
+          </Select>
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="department-select">Department</Label>
+          <Select id="department-select" value={department} onChange={(e) => setDepartment(e.target.value)}>
+            <option value="">Select Department</option>
+            {departmentOptions.map(dept => <option key={dept} value={dept}>{dept}</option>)}
+          </Select>
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="passoutYear">Passout Year</Label>
+          <Input id="passoutYear" type="number" placeholder="e.g., 2025" value={passoutYear} onChange={(e) => setPassoutYear(e.target.value)} />
+        </FormGroup>
+      </FormGrid>
+
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      {success && <SuccessMessage>{success}</SuccessMessage>}
+      
+      <Button type="submit" disabled={isLoading || !selectedFile || !batch || !passoutYear || !department}>
+        {isLoading ? 'Uploading...' : 'Upload Students'}
+      </Button>
+    </Form>
+  );
+};
+
+// Existing Individual Form Logic
+const IndividualForm = () => {
+  const [individualForm, setIndividualForm] = useState({ name: '', regNo: '', email: '', batch: '', passoutYear: '', department: '' });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleIndividualInputChange = (e) => {
+    const { name, value } = e.target;
+    setIndividualForm(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleIndividualSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
-    // Validate all fields
-    if (!individualForm.name || !individualForm.regNo || !individualForm.email || 
-        !individualForm.batch || !individualForm.passoutYear || !individualForm.department) {
+    setError(''); setSuccess('');
+    if (Object.values(individualForm).some(field => !field)) {
       setError('Please fill in all fields');
       return;
     }
-
     try {
       setIsLoading(true);
       await registerStudent(individualForm);
       setSuccess('Student registered successfully');
-      // Reset form
-      setIndividualForm({
-        name: '',
-        regNo: '',
-        email: '',
-        batch: '',
-        passoutYear: '',
-        department: ''
-      });
+      setIndividualForm({ name: '', regNo: '', email: '', batch: '', passoutYear: '', department: '' });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to register student');
     } finally {
@@ -272,186 +365,43 @@ const BulkUpload = () => {
   };
 
   return (
-    <Container>
-      <Title>Student Registration</Title>
-      
-      <TabContainer>
-        <Tab 
-          active={mode === 'bulk'} 
-          onClick={() => { setMode('bulk'); setError(''); setSuccess(''); }}
-        >
-          Bulk Upload
-        </Tab>
-        <Tab 
-          active={mode === 'individual'} 
-          onClick={() => { setMode('individual'); setError(''); setSuccess(''); }}
-        >
-          Individual Entry
-        </Tab>
-      </TabContainer>
-
-      {mode === 'bulk' ? (
-        <Form onSubmit={handleBulkSubmit}>
-          <FormGroup>
-            <Label>Excel File</Label>
-            <FileInputLabel>
-              <FileInput
-                type="file"
-                id="excel-file"
-                accept=".xlsx,.xls"
-                onChange={handleFileChange}
-              />
-              <span>Choose file</span>
-              {selectedFile && <FileName>{selectedFile.name}</FileName>}
-            </FileInputLabel>
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Batch</Label>
-            <Select
-              value={batch}
-              onChange={(e) => setBatch(e.target.value)}
-            >
-              <option value="">Select Batch</option>
-              {batchTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </Select>
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Department</Label>
-            <Select
-              value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-            >
-              <option value="">Select Department</option>
-              {departmentOptions.map((dep) => (
-                <option key={dep} value={dep}>
-                  {dep}
-                </option>
-              ))}
-            </Select>
-          </FormGroup>
-
-          <FormGroup>
-            <Label>Passout Year</Label>
-            <Select
-              value={passoutYear}
-              onChange={(e) => setPassoutYear(e.target.value)}
-            >
-              <option value="">Select Year</option>
-              {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </Select>
-          </FormGroup>
-
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-          {success && <SuccessMessage>{success}</SuccessMessage>}
-
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Uploading...' : 'Upload'}
-          </Button>
-        </Form>
-      ) : (
-        <Form onSubmit={handleIndividualSubmit}>
-          <FormGrid>
-            <FormGroup>
-              <Label>Name</Label>
-              <Input
-                type="text"
-                name="name"
-                value={individualForm.name}
-                onChange={handleIndividualInputChange}
-                placeholder="Enter student name"
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Registration Number</Label>
-              <Input
-                type="text"
-                name="regNo"
-                value={individualForm.regNo}
-                onChange={handleIndividualInputChange}
-                placeholder="Enter registration number"
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                name="email"
-                value={individualForm.email}
-                onChange={handleIndividualInputChange}
-                placeholder="Enter email address"
-              />
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Batch</Label>
-              <Select
-                name="batch"
-                value={individualForm.batch}
-                onChange={handleIndividualInputChange}
-              >
-                <option value="">Select Batch</option>
-                {batchTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </Select>
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Department</Label>
-              <Select
-                name="department"
-                value={individualForm.department}
-                onChange={handleIndividualInputChange}
-              >
-                <option value="">Select Department</option>
-                {departmentOptions.map((dep) => (
-                  <option key={dep} value={dep}>
-                    {dep}
-                  </option>
-                ))}
-              </Select>
-            </FormGroup>
-
-            <FormGroup>
-              <Label>Passout Year</Label>
-              <Select
-                name="passoutYear"
-                value={individualForm.passoutYear}
-                onChange={handleIndividualInputChange}
-              >
-                <option value="">Select Year</option>
-                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() + i).map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </Select>
-            </FormGroup>
-          </FormGrid>
-
-          {error && <ErrorMessage>{error}</ErrorMessage>}
-          {success && <SuccessMessage>{success}</SuccessMessage>}
-
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Registering...' : 'Register Student'}
-          </Button>
-        </Form>
-      )}
-    </Container>
+    <Form onSubmit={handleIndividualSubmit}>
+      <FormGrid>
+        <FormGroup>
+          <Label htmlFor="name">Full Name</Label>
+          <Input id="name" name="name" value={individualForm.name} onChange={handleIndividualInputChange} />
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="regNo">Register Number</Label>
+          <Input id="regNo" name="regNo" value={individualForm.regNo} onChange={handleIndividualInputChange} />
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" name="email" type="email" value={individualForm.email} onChange={handleIndividualInputChange} />
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="batch">Batch</Label>
+          <Select id="batch" name="batch" value={individualForm.batch} onChange={handleIndividualInputChange}>
+            <option value="">Select Batch</option>
+            {batchTypes.map(type => <option key={type} value={type}>{type}</option>)}
+          </Select>
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="passoutYear-individual">Passout Year</Label>
+          <Input id="passoutYear-individual" name="passoutYear" type="number" value={individualForm.passoutYear} onChange={handleIndividualInputChange} />
+        </FormGroup>
+        <FormGroup>
+          <Label htmlFor="department">Department</Label>
+          <Select id="department" name="department" value={individualForm.department} onChange={handleIndividualInputChange}>
+            <option value="">Select Department</option>
+            {departmentOptions.map(dept => <option key={dept} value={dept}>{dept}</option>)}
+          </Select>
+        </FormGroup>
+      </FormGrid>
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      {success && <SuccessMessage>{success}</SuccessMessage>}
+      <Button type="submit" disabled={isLoading}>{isLoading ? 'Registering...' : 'Register Student'}</Button>
+    </Form>
   );
 };
 

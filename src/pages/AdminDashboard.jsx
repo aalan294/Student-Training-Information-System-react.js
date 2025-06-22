@@ -75,6 +75,9 @@ const TotalStatsCard = styled.div`
   padding: 1.5rem;
   border-radius: 0.5rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 `;
 
 const BatchStatsCard = styled.div`
@@ -206,6 +209,7 @@ const AdminDashboard = () => {
   const [isCreateModuleModalOpen, setIsCreateModuleModalOpen] = useState(false);
   const [isStudentDetailsModalOpen, setIsStudentDetailsModalOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [modalStudentScope, setModalStudentScope] = useState({ ids: [], name: '' });
   const [passoutYears, setPassoutYears] = useState([]);
   const [selectedPassoutYear, setSelectedPassoutYear] = useState('');
   const navigate = useNavigate();
@@ -273,7 +277,21 @@ const AdminDashboard = () => {
     setStudents(filteredStudents);
   };
 
-  const handleCreateModule = () => {
+  const openModalForBatch = (batch) => {
+    const batchStudents = allStudents.filter(s => s.passoutYear == selectedPassoutYear && s.batch === batch);
+    setModalStudentScope({
+      ids: batchStudents.map(s => s._id),
+      name: `${batch} (${selectedPassoutYear})`
+    });
+    setIsCreateModuleModalOpen(true);
+  };
+
+  const openModalForAll = () => {
+    const yearStudents = allStudents.filter(s => s.passoutYear == selectedPassoutYear);
+    setModalStudentScope({
+      ids: yearStudents.map(s => s._id),
+      name: `All Students (${selectedPassoutYear})`
+    });
     setIsCreateModuleModalOpen(true);
   };
 
@@ -312,13 +330,16 @@ const AdminDashboard = () => {
 
       <StatsGrid>
         <TotalStatsCard>
-          <StatsLabel isTotal>
-            <FaTachometerAlt size={20} style={{ marginRight: '0.5rem' }} />
-            Total Students
-          </StatsLabel>
-          <StatsValue isTotal>
-            {isLoading ? 'Loading...' : counts.total || 0}
-          </StatsValue>
+          <div>
+            <StatsLabel isTotal>
+              <FaTachometerAlt size={20} style={{ marginRight: '0.5rem' }} />
+              Total Students
+            </StatsLabel>
+            <StatsValue isTotal>{counts.total || 0}</StatsValue>
+          </div>
+          <ActionButton onClick={openModalForAll} disabled={!selectedPassoutYear || (counts.total || 0) === 0}>
+            Create Module for All
+          </ActionButton>
         </TotalStatsCard>
         {batchTypes.map(batch => (
           <BatchStatsCard key={batch} onClick={() => fetchStudentsByBatch(batch)}>
@@ -339,7 +360,7 @@ const AdminDashboard = () => {
             <TableTitle>{selectedBatch} Students ({selectedPassoutYear})</TableTitle>
             <StudentCount>{students.length} students</StudentCount>
             <ActionButton 
-              onClick={handleCreateModule} 
+              onClick={() => openModalForBatch(selectedBatch)} 
               disabled={!selectedBatch || students.length === 0}
             >
               Create Module for this Batch
@@ -384,8 +405,8 @@ const AdminDashboard = () => {
       <CreateModuleModal
         isOpen={isCreateModuleModalOpen}
         onClose={() => setIsCreateModuleModalOpen(false)}
-        studentIds={students.map(student => student._id)}
-        batchName={selectedBatch}
+        studentIds={modalStudentScope.ids}
+        batchName={modalStudentScope.name}
       />
 
       {isStudentDetailsModalOpen && (
