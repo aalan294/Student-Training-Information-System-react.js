@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
 import { FaCheckCircle, FaTimesCircle, FaUserTie } from 'react-icons/fa';
+import AttendanceVisualization from '../../components/admin/AttendanceVisualization';
 
 const Container = styled.div`
   display: flex;
@@ -405,6 +406,9 @@ const AttendanceHistoryAdmin = () => {
                         </StudentCard>
                       ))}
                     </StudentList>
+
+                    <AttendanceVisualization sessionData={sessionData} />
+
                   </>
                 )}
               </>

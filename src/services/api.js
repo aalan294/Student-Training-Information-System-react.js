@@ -90,6 +90,12 @@ export const bulkRegisterStudents = (file, batch, passoutYear, department) => {
   return api.post('/admin/bulk-register', formData);
 };
 
+export const bulkRegisterStudentsWithDetails = (file) => {
+  const formData = new FormData();
+  formData.append('excel', file);
+  return api.post('/admin/bulk-register-with-details', formData);
+};
+
 // Training Module APIs
 export const getAllModules = () => api.get('/admin/modules');
 export const addModule = async (moduleData) => {
