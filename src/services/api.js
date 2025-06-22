@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 
 
@@ -187,7 +186,7 @@ export const unassignStaffFromVenue = (staffId) => api.post('/admin/staff/unassi
 export const getAllStaff = () => api.get('/admin/staff');
 
 export const getVenueStudents = () => api.get('/staff/venue-students');
-export const markAttendance = (date, presentStudentIds) => api.post('/staff/mark-attendance', { date, presentStudentIds });
+export const markAttendance = (date, session, attendanceData) => api.post('/staff/mark-attendance', { date, session, attendanceData });
 export const getVenueLeaderboard = () => api.get('/staff/venue-leaderboard');
 
 export default api;
