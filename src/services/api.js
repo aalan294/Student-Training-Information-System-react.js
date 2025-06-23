@@ -196,4 +196,7 @@ export const getVenueStudents = () => api.get('/staff/venue-students');
 export const markAttendance = (date, session, attendanceData) => api.post('/staff/mark-attendance', { date, session, attendanceData });
 export const getVenueLeaderboard = () => api.get('/staff/venue-leaderboard');
 
+// Admin Attendance
+export const markAttendanceByAdmin = (date, session, attendanceData) => api.post('/admin/mark-attendance', { date, session, attendanceData });
+
 export default api;

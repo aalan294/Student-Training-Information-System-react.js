@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaTachometerAlt, FaUserGraduate, FaChalkboardTeacher, FaClipboardList, FaUpload, FaTrophy, FaBuilding, FaUsersCog, FaHistory, FaSignOutAlt } from 'react-icons/fa';
+import { FaTachometerAlt, FaUserGraduate, FaChalkboardTeacher, FaClipboardList, FaUpload, FaTrophy, FaBuilding, FaUsersCog, FaHistory, FaSignOutAlt, FaCheckSquare } from 'react-icons/fa';
 
 const LayoutContainer = styled.div`
   min-height: 100vh;
@@ -172,6 +172,7 @@ const AdminLayout = ({ children }) => {
     { name: 'Leaderboard', href: '/admin/leaderboard', icon: <FaTrophy /> },
     { name: 'Venues', href: '/admin/venues', icon: <FaBuilding /> },
     { name: 'Staff', href: '/admin/staff', icon: <FaUsersCog /> },
+    { name: 'Attendance', href: '/admin/attendance', icon: <FaCheckSquare /> },
     { name: 'Attendance History', href: '/admin/attendance-history', icon: <FaHistory /> },
   ];
 
