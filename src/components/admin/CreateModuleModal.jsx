@@ -20,7 +20,7 @@ const ModalContent = styled.div`
   padding: 2rem;
   border-radius: 0.5rem;
   width: 100%;
-  max-width: 32rem;
+  max-width: 48rem;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 `;
 
@@ -29,6 +29,7 @@ const Title = styled.h3`
   font-weight: 600;
   color: #111827;
   margin-bottom: 1.5rem;
+  margin-top: 0.5rem;
 `;
 
 const Form = styled.form`
@@ -122,17 +123,27 @@ const ErrorMessage = styled.div`
   margin-top: 0.5rem;
 `;
 
+const VenueContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  min-height: 40px;
+`;
+
 const VenueSelectRow = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
 `;
 const VenueTag = styled.span`
-  background: #6366f1;
+  background: #4f46e5;
   color: #fff;
   border-radius: 12px;
   padding: 0.25rem 0.75rem;
-  margin-right: 0.5rem;
   font-size: 0.85em;
   display: inline-flex;
   align-items: center;
@@ -200,11 +211,11 @@ const CreateModuleModal = ({ isOpen, onClose, studentIds, batchName }) => {
   }, [isOpen]);
 
   useEffect(() => {
-    // Map students to venues by capacity whenever assignedVenues or studentIds changes
     if (assignedVenues.length > 0 && studentIds.length > 0) {
+      const sortedVenues = [...assignedVenues].sort((a, b) => a.name.localeCompare(b.name));
       let map = {};
       let idx = 0;
-      assignedVenues.forEach(venue => {
+      sortedVenues.forEach(venue => {
         const cap = parseInt(venue.capacity);
         map[venue._id] = studentIds.slice(idx, idx + cap);
         idx += cap;
@@ -244,10 +255,10 @@ const CreateModuleModal = ({ isOpen, onClose, studentIds, batchName }) => {
     if (!venueToAdd) return;
     const venueObj = venues.find(v => v._id === venueToAdd);
     if (venueObj && !assignedVenues.some(v => v._id === venueObj._id)) {
-      setAssignedVenues(prev => [...prev, venueObj]);
+      setAssignedVenues(prev => [...prev, venueObj].sort((a, b) => a.name.localeCompare(b.name)));
     }
     setVenueToAdd('');
-    setTimeout(() => setVenueDropdownOpen(true), 0); // keep open for next selection
+    setVenueDropdownOpen(false);
   };
 
   const handleRemoveVenue = (venueId) => {
@@ -256,7 +267,7 @@ const CreateModuleModal = ({ isOpen, onClose, studentIds, batchName }) => {
 
   const handleDropdownChange = (e) => {
     setVenueToAdd(e.target.value);
-    setTimeout(handleAddVenue, 100); // add after select
+    setTimeout(handleAddVenue, 100);
   };
 
   const allFieldsFilled =
@@ -286,14 +297,7 @@ const CreateModuleModal = ({ isOpen, onClose, studentIds, batchName }) => {
     }
   };
 
-  // Venue summary for preview
-  const venueSummary = assignedVenues.map((venue, i) => (
-    <VenueSummary key={venue._id}>
-      <b>{venue.name}</b> (Capacity: {venue.capacity}): {venueStudentMap[venue._id]?.length || 0} students
-    </VenueSummary>
-  ));
-  const totalAssigned = Object.values(venueStudentMap).reduce((acc, arr) => acc + (arr?.length || 0), 0);
-  const unassignedCount = studentIds.length - totalAssigned;
+  const totalCapacity = Object.values(venueStudentMap).reduce((acc, arr) => acc + (arr?.length || 0), 0);
 
   return (
     <ModalOverlay onClick={onClose}>
@@ -351,34 +355,47 @@ const CreateModuleModal = ({ isOpen, onClose, studentIds, batchName }) => {
           {/* Venues Field */}
           <FormGroup>
             <Label>Venues</Label>
-            <VenueSelectRow>
+            <VenueContainer>
               {assignedVenues.map(venue => (
                 <VenueTag key={venue._id}>
                   {venue.name}
-                  <RemoveTag type="button" onClick={() => handleRemoveVenue(venue._id)} title="Remove">&times;</RemoveTag>
+                  <RemoveTag onClick={() => handleRemoveVenue(venue._id)}>&times;</RemoveTag>
                 </VenueTag>
               ))}
-              <AddVenueButton type="button" title="Add Venue" onClick={() => setVenueDropdownOpen(true)}>+</AddVenueButton>
+            </VenueContainer>
+            <VenueSelectRow>
+              <AddVenueButton type="button" onClick={() => setVenueDropdownOpen(!venueDropdownOpen)}>+</AddVenueButton>
               {venueDropdownOpen && (
                 <VenueDropdown
-                  ref={el => setDropdownRef(el)}
+                  ref={setDropdownRef}
                   value={venueToAdd}
                   onChange={handleDropdownChange}
-                  autoFocus
+                  onBlur={() => setVenueDropdownOpen(false)}
                 >
                   <option value="">Select Venue</option>
-                  {venues.filter(v => !assignedVenues.some(av => av._id === v._id)).map(venue => (
-                    <option key={venue._id} value={venue._id}>{venue.name} (Capacity: {venue.capacity})</option>
-                  ))}
+                  {venues
+                    .filter(v => !assignedVenues.some(av => av._id === v._id))
+                    .map(v => (
+                      <option key={v._id} value={v._id}>
+                        {v.name} (Capacity: {v.capacity})
+                      </option>
+                    ))}
                 </VenueDropdown>
               )}
             </VenueSelectRow>
-            {venueSummary}
-            {unassignedCount > 0 && (
-              <VenueSummary style={{ color: '#dc2626' }}>
-                {unassignedCount} students will not be assigned to any venue (not enough capacity).
-              </VenueSummary>
+            {totalCapacity < studentIds.length && (
+              <ErrorMessage>
+                {studentIds.length - totalCapacity} students will not be assigned to any venue (not enough capacity).
+              </ErrorMessage>
             )}
+            <VenueSummary>
+              Assigned {assignedVenues.length} venues with a total capacity of {totalCapacity}.
+            </VenueSummary>
+            <div>
+              {assignedVenues.map(v => (
+                <div key={v._id}>{v.name} (Capacity: {v.capacity}): {venueStudentMap[v._id]?.length || 0} students</div>
+              ))}
+            </div>
           </FormGroup>
 
           {error && <ErrorMessage>{error}</ErrorMessage>}
