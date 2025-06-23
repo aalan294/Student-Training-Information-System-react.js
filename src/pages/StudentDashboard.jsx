@@ -111,6 +111,12 @@ const DashboardHeader = styled.div`
   align-items: center;
   gap: 2rem;
   margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
 `;
 
 const WelcomeSection = styled.div`
@@ -121,11 +127,19 @@ const WelcomeText = styled.h1`
   font-size: 2rem;
   color: #1a1a1a;
   margin-bottom: 0.5rem;
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
 `;
 
 const SubText = styled.p`
   color: #666;
   font-size: 1.1rem;
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
 `;
 
 // Map completed trainings to 4 levels

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FaTachometerAlt, FaUserGraduate, FaChalkboardTeacher, FaClipboardList, FaUpload, FaTrophy, FaBuilding, FaUsersCog, FaHistory, FaSignOutAlt, FaCheckSquare } from 'react-icons/fa';
@@ -10,24 +10,32 @@ const LayoutContainer = styled.div`
 `;
 
 const Sidebar = styled.div`
-  width: ${props => props.isOpen ? '250px' : '0'};
+  width: 250px;
   background-color: #181f2a;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  transition: width 0.3s ease;
-  overflow: hidden;
+  transition: transform 0.3s ease;
   position: fixed;
   height: 100vh;
   z-index: 1000;
   font-family: 'Inter', 'Roboto', Arial, sans-serif;
+  overflow-y: auto;
+
+  @media (max-width: 768px) {
+    transform: ${props => props.isOpen ? 'translateX(0)' : 'translateX(-100%)'};
+  }
 `;
 
 const MainContent = styled.div`
   flex: 1;
-  margin-left: ${props => props.isOpen ? '250px' : '0'};
+  margin-left: 250px;
   transition: margin-left 0.3s ease;
   padding: 2rem;
   background: linear-gradient(120deg, #f9fafb 60%, #e0e7ff 100%);
   font-family: 'Inter', 'Roboto', Arial, sans-serif;
+
+  @media (max-width: 768px) {
+    margin-left: 0;
+  }
 `;
 
 const MenuButton = styled.button`
@@ -39,7 +47,7 @@ const MenuButton = styled.button`
   border: none;
   cursor: pointer;
   padding: 0.75rem;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   color: #374151;
@@ -55,6 +63,10 @@ const MenuButton = styled.button`
 
   &:active {
     transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    display: flex;
   }
 `;
 
@@ -86,7 +98,7 @@ const MenuIcon = styled.div`
     &:nth-child(2) {
       top: 7px;
       opacity: ${props => props.isOpen ? '0' : '1'};
-      transform: ${props => props.isOpen ? 'translateX(20px)' : 'translateX(0)'};
+      transform: ${props => props.isOpen ? 'translateX(-20px)' : 'translateX(0)'};
     }
     
     &:nth-child(3) {
@@ -154,13 +166,33 @@ const LogoutButton = styled.button`
 `;
 
 const AdminLayout = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
   const location = useLocation();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsOpen(true);
+      } else {
+        setIsOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleLogout = () => {
-    localStorage.removeItem('isAdminAuthenticated');
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('adminData');
     navigate('/admin/login');
+  };
+
+  const handleLinkClick = () => {
+    if (window.innerWidth <= 768) {
+      setIsOpen(false);
+    }
   };
 
   const navigation = [
@@ -192,8 +224,8 @@ const AdminLayout = ({ children }) => {
             <MenuItem key={item.href}>
               <MenuLink
                 to={item.href}
-                active={location.pathname === item.href}
-                onClick={() => setIsOpen(false)}
+                active={location.pathname.startsWith(item.href)}
+                onClick={handleLinkClick}
               >
                 {item.icon && <span style={{marginRight: 10}}>{item.icon}</span>}
                 {item.name}
@@ -202,7 +234,8 @@ const AdminLayout = ({ children }) => {
           ))}
           <MenuItem>
             <LogoutButton onClick={handleLogout}>
-                Logout
+              <FaSignOutAlt />
+              Logout
             </LogoutButton>
           </MenuItem>
         </MenuList>

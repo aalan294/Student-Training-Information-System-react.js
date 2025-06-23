@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 
-const API_BASE_URL = "https://student-training-information-system.onrender.com/";
-// const API_BASE_URL = "http://localhost:3500/";
+// const API_BASE_URL = "https://student-training-information-system.onrender.com/";
+const API_BASE_URL = "http://localhost:3500/";
 
 
 // Create axios instance with base configuration
@@ -117,17 +117,13 @@ export const getStudentModulePerformance = async (studentId, moduleId) => {
   return response.data;
 };
 
-export const uploadBulkScores = async (file, moduleId, examNumber) => {
-  try {
-    const formData = new FormData();
-    formData.append('marksFile', file);
-    formData.append('moduleId', moduleId);
-    formData.append('examNumber', examNumber);
-    // Do NOT set Content-Type header manually!
-    return await api.post('/admin/upload-scores', formData);
-  } catch (error) {
-    throw error;
-  }
+export const uploadBulkScores = (file, moduleId, examNumber) => {
+  const formData = new FormData();
+  formData.append('marksFile', file);
+  formData.append('moduleId', moduleId);
+  formData.append('examNumber', examNumber);
+  // Do NOT set Content-Type header manually!
+  return api.post('/admin/upload-scores', formData);
 };
 
 export const uploadIndividualScore = async (studentId, moduleId, examNumber, score) => {
