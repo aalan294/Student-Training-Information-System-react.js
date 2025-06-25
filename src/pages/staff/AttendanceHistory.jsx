@@ -148,12 +148,16 @@ const Stat = styled.div`
 `;
 
 const StudentList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 `;
 
-const StudentCard = styled.div`
+const StudentRow = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 8px;
   background: ${({ status }) => {
     if (status === 'present') return '#dcfce7';
     if (status === 'absent') return '#fee2e2';
@@ -166,19 +170,35 @@ const StudentCard = styled.div`
     if (status === 'od') return '#fed7aa';
     return '#e5e7eb';
   }};
-  border-radius: 8px;
-  padding: 15px;
-`;
-
-const StudentName = styled.div`
+  color: ${({ status }) => {
+    if (status === 'present') return '#166534';
+    if (status === 'absent') return '#dc2626';
+    if (status === 'od') return '#d97706';
+    return '#374151';
+  }};
   font-weight: 500;
-  margin-bottom: 5px;
-  color: #1e293b;
+  font-size: 14px;
 `;
 
-const StudentDetails = styled.div`
-  font-size: 14px;
-  color: #64748b;
+const StudentInfo = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+`;
+
+const StudentName = styled.span`
+  font-weight: 600;
+`;
+
+const StudentRegNo = styled.span`
+  color: ${({ status }) => {
+    if (status === 'present') return '#15803d';
+    if (status === 'absent') return '#b91c1c';
+    if (status === 'od') return '#b45309';
+    return '#374151';
+  }};
+  opacity: 0.8;
 `;
 
 const StatusIcon = styled.div`
@@ -228,6 +248,7 @@ const AttendanceHistory = () => {
     } catch (err) {
       setError('Failed to fetch attendance history');
       toast.error('Failed to fetch attendance history');
+      console.error('Error fetching attendance history:', err);
     } finally {
       setLoading(false);
     }
@@ -330,40 +351,40 @@ const AttendanceHistory = () => {
 
                 <StudentList>
                   {sessionData.present.map(student => (
-                    <StudentCard key={student.id} status="present">
-                      <StatusIcon status="present">
-                        <FaCheckCircle />
-                        Present
-                      </StatusIcon>
-                      <StudentName>{student.name}</StudentName>
-                      <StudentDetails>
-                        {student.regNo} • {student.batch} • {student.department}
-                      </StudentDetails>
-                    </StudentCard>
+                    <StudentRow key={student.id} status="present">
+                      <StudentInfo>
+                        <StatusIcon status="present">
+                          <FaCheckCircle />
+                          Present
+                        </StatusIcon>
+                        <StudentName>{student.name}</StudentName>
+                        <StudentRegNo>{student.regNo}</StudentRegNo>
+                      </StudentInfo>
+                    </StudentRow>
                   ))}
                   {sessionData.absent.map(student => (
-                    <StudentCard key={student.id} status="absent">
-                      <StatusIcon status="absent">
-                        <FaTimesCircle />
-                        Absent
-                      </StatusIcon>
-                      <StudentName>{student.name}</StudentName>
-                      <StudentDetails>
-                        {student.regNo} • {student.batch} • {student.department}
-                      </StudentDetails>
-                    </StudentCard>
+                    <StudentRow key={student.id} status="absent">
+                      <StudentInfo>
+                        <StatusIcon status="absent">
+                          <FaTimesCircle />
+                          Absent
+                        </StatusIcon>
+                        <StudentName>{student.name}</StudentName>
+                        <StudentRegNo>{student.regNo}</StudentRegNo>
+                      </StudentInfo>
+                    </StudentRow>
                   ))}
                   {sessionData.od.map(student => (
-                    <StudentCard key={student.id} status="od">
-                      <StatusIcon status="od">
-                        <FaUserTie />
-                        On Duty
-                      </StatusIcon>
-                      <StudentName>{student.name}</StudentName>
-                      <StudentDetails>
-                        {student.regNo} • {student.batch} • {student.department}
-                      </StudentDetails>
-                    </StudentCard>
+                    <StudentRow key={student.id} status="od">
+                      <StudentInfo>
+                        <StatusIcon status="od">
+                          <FaUserTie />
+                          On Duty
+                        </StatusIcon>
+                        <StudentName>{student.name}</StudentName>
+                        <StudentRegNo>{student.regNo}</StudentRegNo>
+                      </StudentInfo>
+                    </StudentRow>
                   ))}
                 </StudentList>
               </>

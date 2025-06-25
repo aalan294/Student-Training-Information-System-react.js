@@ -84,23 +84,35 @@ const Td = styled.td`
 
 const CheckboxGroup = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
+  flex-wrap: wrap;
 `;
 
-const Checkbox = styled.input`
-  width: 1.2rem;
-  height: 1.2rem;
+const StatusDropdown = styled.select`
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background: white;
   cursor: pointer;
+  min-width: 100px;
+  
+  &:focus {
+    outline: none;
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+  }
 `;
 
 const StatusLabel = styled.label`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #374151;
+  white-space: nowrap;
 `;
 
 const Button = styled.button`
@@ -193,12 +205,12 @@ const StaffAttendance = () => {
     fetchStudents();
   }, []);
 
-  const handleAttendanceChange = (studentId, field, value) => {
+  const handleStatusChange = (studentId, status) => {
     setAttendanceData(prev => ({
       ...prev,
       [studentId]: {
-        ...prev[studentId],
-        [field]: value
+        present: status === 'Present' || status === 'On Duty',
+        od: status === 'On Duty'
       }
     }));
   };
@@ -213,8 +225,14 @@ const StaffAttendance = () => {
         od: data.od
       }));
 
-      await markAttendance(date, session, attendanceArray);
-      toast.success(`${session.charAt(0).toUpperCase() + session.slice(1)} attendance marked successfully!`);
+      const response = await markAttendance(date, session, attendanceArray);
+      const emailCount = response.data?.summary?.emailsSent || 0;
+      
+      if (emailCount > 0) {
+        toast.success(`${session.charAt(0).toUpperCase() + session.slice(1)} attendance marked successfully! ${emailCount} absence email(s) sent.`);
+      } else {
+        toast.success(`${session.charAt(0).toUpperCase() + session.slice(1)} attendance marked successfully!`);
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to mark attendance');
     } finally {
@@ -288,50 +306,28 @@ const StaffAttendance = () => {
             <Table>
               <thead>
                 <tr>
-                  <Th>Status</Th>
+                  <Th style={{ minWidth: '150px' }}>Attendance Status</Th>
                   <Th>Name</Th>
                   <Th>Reg No</Th>
-                  <Th>Email</Th>
-                  <Th>Batch</Th>
                 </tr>
               </thead>
               <tbody>
                 {students.map(student => (
                   <tr key={student._id}>
                     <Td>
-                      <CheckboxGroup>
-                        <StatusLabel>
-                          <Checkbox
-                            type="checkbox"
-                            checked={attendanceData[student._id]?.present && !attendanceData[student._id]?.od}
-                            onChange={(e) => {
-                              handleAttendanceChange(student._id, 'present', e.target.checked);
-                              if (e.target.checked) {
-                                handleAttendanceChange(student._id, 'od', false);
-                              }
-                            }}
-                          />
-                          Present
-                        </StatusLabel>
-                        <StatusLabel>
-                          <Checkbox
-                            type="checkbox"
-                            checked={attendanceData[student._id]?.od}
-                            onChange={(e) => {
-                              handleAttendanceChange(student._id, 'od', e.target.checked);
-                              if (e.target.checked) {
-                                handleAttendanceChange(student._id, 'present', true);
-                              }
-                            }}
-                          />
-                          On Duty
-                        </StatusLabel>
-                      </CheckboxGroup>
+                      <StatusDropdown
+                        value={attendanceData[student._id]?.present ? 'Present' : attendanceData[student._id]?.od ? 'On Duty' : 'Absent'}
+                        onChange={(e) => {
+                          handleStatusChange(student._id, e.target.value);
+                        }}
+                      >
+                        <option value="Present">Present</option>
+                        <option value="On Duty">On Duty</option>
+                        <option value="Absent">Absent</option>
+                      </StatusDropdown>
                     </Td>
                     <Td>{student.name}</Td>
                     <Td>{student.regNo}</Td>
-                    <Td>{student.email}</Td>
-                    <Td>{student.batch}</Td>
                   </tr>
                 ))}
               </tbody>
@@ -347,4 +343,4 @@ const StaffAttendance = () => {
   );
 };
 
-export default StaffAttendance; 
+export default StaffAttendance;

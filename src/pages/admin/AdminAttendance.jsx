@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { getAllStudents, markAttendanceByAdmin } from '../../services/api';
+import { getAllStudents, markAttendanceByAdmin, getExistingAttendance } from '../../services/api';
 import styled from 'styled-components';
 import { toast } from 'react-toastify';
-import { FaCheckCircle, FaTimesCircle, FaUserTie, FaSearch } from 'react-icons/fa';
+import { FaCheckCircle, FaTimesCircle, FaUserTie, FaSearch, FaSync } from 'react-icons/fa';
 
 const Container = styled.div`
   padding: 2rem;
@@ -84,23 +84,35 @@ const Td = styled.td`
 
 const CheckboxGroup = styled.div`
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   align-items: center;
+  flex-wrap: wrap;
 `;
 
-const Checkbox = styled.input`
-  width: 1.2rem;
-  height: 1.2rem;
+const StatusDropdown = styled.select`
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  background: white;
   cursor: pointer;
+  min-width: 100px;
+  
+  &:focus {
+    outline: none;
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+  }
 `;
 
 const StatusLabel = styled.label`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #374151;
+  white-space: nowrap;
 `;
 
 const Button = styled.button`
@@ -195,6 +207,40 @@ const VenueHeader = styled.h3`
   border-bottom: 2px solid #e5e7eb;
 `;
 
+const RefreshButton = styled.button`
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &:hover {
+    background: #2563eb;
+  }
+  
+  &:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+`;
+
+const InfoText = styled.div`
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #f3f4f6;
+  border-radius: 0.5rem;
+  border-left: 4px solid #3b82f6;
+`;
+
 const AdminAttendance = () => {
   const [allStudents, setAllStudents] = useState([]);
   const [groupedStudents, setGroupedStudents] = useState({});
@@ -205,22 +251,25 @@ const AdminAttendance = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [attendanceData, setAttendanceData] = useState({});
+  const [existingAttendance, setExistingAttendance] = useState({});
+  const [hasExistingData, setHasExistingData] = useState(false);
+  const [modifiedStudents, setModifiedStudents] = useState(new Set());
+  const [newlyAbsentStudents, setNewlyAbsentStudents] = useState(new Set());
 
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchData = async () => {
       setLoading(true);
       setError('');
       try {
-        const res = await getAllStudents();
-        const students = res.data.students;
+        const studentsRes = await getAllStudents();
+        const students = studentsRes.data.students;
         setAllStudents(students);
 
-        // Group students by venue
         const groups = {};
         const initialData = {};
         students.forEach(student => {
           if (student.venues && student.venues.length > 0) {
-            const venue = student.venues[0]; // Assuming one venue per student for now
+            const venue = student.venues[0];
             if (!groups[venue.venueName]) {
               groups[venue.venueName] = [];
             }
@@ -229,7 +278,27 @@ const AdminAttendance = () => {
           initialData[student._id] = { present: true, od: false };
         });
         setGroupedStudents(groups);
-        setAttendanceData(initialData);
+
+        try {
+          const attendanceRes = await getExistingAttendance(date, session);
+          const existingData = attendanceRes.data.attendanceData;
+          setExistingAttendance(existingData);
+          
+          const mergedData = { ...initialData };
+          Object.keys(existingData).forEach(studentId => {
+            if (mergedData[studentId]) {
+              mergedData[studentId] = {
+                present: existingData[studentId].present,
+                od: existingData[studentId].od
+              };
+            }
+          });
+          setAttendanceData(mergedData);
+          setHasExistingData(Object.keys(existingData).length > 0);
+        } catch (attendanceErr) {
+          setAttendanceData(initialData);
+          setHasExistingData(false);
+        }
 
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch students');
@@ -237,8 +306,74 @@ const AdminAttendance = () => {
         setLoading(false);
       }
     };
-    fetchStudents();
-  }, []);
+    fetchData();
+  }, [date, session]);
+
+  // Track modifications when attendance data changes
+  useEffect(() => {
+    const modified = new Set();
+    const newlyAbsent = new Set();
+    
+    Object.keys(attendanceData).forEach(studentId => {
+      const current = attendanceData[studentId];
+      const existing = existingAttendance[studentId];
+      
+      if (existing) {
+        // Check if current data differs from existing data
+        if (current.present !== existing.present || current.od !== existing.od) {
+          modified.add(studentId);
+          
+          // Check if student is newly absent (was present/OD before, now absent)
+          const wasPresentOrOD = existing.present || existing.od;
+          const isNowAbsent = !current.present && !current.od;
+          const emailNotSent = !existing.emailSent;
+          
+          if (wasPresentOrOD && isNowAbsent && emailNotSent) {
+            newlyAbsent.add(studentId);
+          }
+        }
+      } else {
+        // Check if current data differs from default (present: true, od: false)
+        if (!current.present || current.od) {
+          modified.add(studentId);
+          
+          // Check if student is newly absent (default was present, now absent)
+          const isNowAbsent = !current.present && !current.od;
+          if (isNowAbsent) {
+            newlyAbsent.add(studentId);
+          }
+        }
+      }
+    });
+    
+    setModifiedStudents(modified);
+    setNewlyAbsentStudents(newlyAbsent);
+  }, [attendanceData, existingAttendance]);
+
+  const refreshExistingAttendance = async () => {
+    try {
+      const attendanceRes = await getExistingAttendance(date, session);
+      const existingData = attendanceRes.data.attendanceData;
+      setExistingAttendance(existingData);
+      
+      setAttendanceData(prev => {
+        const updated = { ...prev };
+        Object.keys(existingData).forEach(studentId => {
+          if (updated[studentId]) {
+            updated[studentId] = {
+              present: existingData[studentId].present,
+              od: existingData[studentId].od
+            };
+          }
+        });
+        return updated;
+      });
+      setHasExistingData(Object.keys(existingData).length > 0);
+      toast.success('Existing attendance data loaded successfully!');
+    } catch (err) {
+      toast.error('Failed to load existing attendance data');
+    }
+  };
 
   const handleAttendanceChange = (studentId, field, value) => {
     setAttendanceData(prev => ({
@@ -250,23 +385,56 @@ const AdminAttendance = () => {
     }));
   };
 
+  const handleStatusChange = (studentId, status) => {
+    setAttendanceData(prev => ({
+      ...prev,
+      [studentId]: {
+        present: status === 'Present' || status === 'On Duty',
+        od: status === 'On Duty'
+      }
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const attendanceArray = allStudents.map(student => {
-        const venue = student.venues && student.venues.length > 0 ? student.venues[0] : null;
-        return {
-          studentId: student._id,
-          venueId: venue ? venue.venueId : null,
-          ...attendanceData[student._id]
-        };
-      }).filter(item => item.venueId); // Ensure we only send data for students with a venue
+      // Create attendance array for all students with venues
+      const attendanceArray = allStudents
+        .map(student => {
+          const venue = student.venues && student.venues.length > 0 ? student.venues[0] : null;
+          const currentData = attendanceData[student._id];
+          
+          // Only include students with venues
+          if (!venue) return null;
+          
+          return {
+            studentId: student._id,
+            venueId: venue.venueId,
+            present: currentData.present,
+            od: currentData.od
+          };
+        })
+        .filter(item => item !== null);
 
-      await markAttendanceByAdmin(date, session, attendanceArray);
-      toast.success(`${session.charAt(0).toUpperCase() + session.slice(1)} attendance marked successfully!`);
+      if (attendanceArray.length === 0) {
+        toast.error('No students with venues found to update attendance');
+        return;
+      }
+
+      const response = await markAttendanceByAdmin(date, session, attendanceArray);
+      const emailCount = response.data?.summary?.emailsSent || 0;
+      
+      if (emailCount > 0) {
+        toast.success(`${session.charAt(0).toUpperCase() + session.slice(1)} attendance updated successfully! ${emailCount} absence email(s) sent.`);
+      } else {
+        toast.success(`${session.charAt(0).toUpperCase() + session.slice(1)} attendance updated successfully!`);
+      }
+      
+      // Refresh existing attendance data after successful update
+      await refreshExistingAttendance();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to mark attendance');
+      toast.error(err.response?.data?.message || 'Failed to update attendance');
     } finally {
       setSubmitting(false);
     }
@@ -342,6 +510,44 @@ const AdminAttendance = () => {
                 required
               />
             </FormSection>
+
+            {hasExistingData && (
+              <InfoText>
+                <strong>Existing attendance data found!</strong> You can modify individual student attendance records. 
+                Students with existing data are pre-filled. You only need to update the records you want to change.
+                {modifiedStudents.size > 0 && (
+                  <span style={{ color: '#dc2626', fontWeight: '500' }}>
+                    {' '}Modified: {modifiedStudents.size} student(s)
+                  </span>
+                )}
+                {newlyAbsentStudents.size > 0 && (
+                  <span style={{ color: '#dc2626', fontWeight: '500' }}>
+                    {' '}• Newly absent: {newlyAbsentStudents.size} student(s) (will receive email)
+                  </span>
+                )}
+                <RefreshButton 
+                  type="button" 
+                  onClick={refreshExistingAttendance}
+                  style={{ marginLeft: '1rem' }}
+                >
+                  <FaSync /> Refresh Data
+                </RefreshButton>
+              </InfoText>
+            )}
+
+            {!hasExistingData && modifiedStudents.size > 0 && (
+              <InfoText style={{ borderLeftColor: '#dc2626' }}>
+                <strong>New attendance data will be created!</strong> 
+                <span style={{ color: '#dc2626', fontWeight: '500' }}>
+                  {' '}Modified: {modifiedStudents.size} student(s)
+                </span>
+                {newlyAbsentStudents.size > 0 && (
+                  <span style={{ color: '#dc2626', fontWeight: '500' }}>
+                    {' '}• Newly absent: {newlyAbsentStudents.size} student(s) (will receive email)
+                  </span>
+                )}
+              </InfoText>
+            )}
             
             <SearchContainer>
               <FaSearch />
@@ -377,59 +583,90 @@ const AdminAttendance = () => {
                 <Table>
                   <thead>
                     <tr>
-                      <Th>Status</Th>
+                      <Th style={{ minWidth: '150px' }}>Attendance Status</Th>
                       <Th>Name</Th>
                       <Th>Reg No</Th>
-                      <Th>Email</Th>
-                      <Th>Batch</Th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredGroupedStudents[venueName].map(student => (
-                      <tr key={student._id}>
-                        <Td>
-                          <CheckboxGroup>
-                            <StatusLabel>
-                              <Checkbox
-                                type="checkbox"
-                                checked={attendanceData[student._id]?.present && !attendanceData[student._id]?.od}
-                                onChange={(e) => {
-                                  handleAttendanceChange(student._id, 'present', e.target.checked);
-                                  if (e.target.checked) {
-                                    handleAttendanceChange(student._id, 'od', false);
-                                  }
-                                }}
-                              />
-                              Present
-                            </StatusLabel>
-                            <StatusLabel>
-                              <Checkbox
-                                type="checkbox"
-                                checked={attendanceData[student._id]?.od}
-                                onChange={(e) => {
-                                  handleAttendanceChange(student._id, 'od', e.target.checked);
-                                  if (e.target.checked) {
-                                    handleAttendanceChange(student._id, 'present', true);
-                                  }
-                                }}
-                              />
-                              On Duty
-                            </StatusLabel>
-                          </CheckboxGroup>
-                        </Td>
-                        <Td>{student.name}</Td>
-                        <Td>{student.regNo}</Td>
-                        <Td>{student.email}</Td>
-                        <Td>{student.batch}</Td>
-                      </tr>
-                    ))}
+                    {filteredGroupedStudents[venueName].map(student => {
+                      const hasExisting = existingAttendance[student._id];
+                      const isModified = modifiedStudents.has(student._id);
+                      const isNewlyAbsent = newlyAbsentStudents.has(student._id);
+                      const emailSent = hasExisting?.emailSent;
+                      
+                      return (
+                        <tr key={student._id} style={{ 
+                          backgroundColor: hasExisting ? '#f0f9ff' : 'transparent',
+                          borderLeft: isModified ? '4px solid #dc2626' : 'none'
+                        }}>
+                          <Td>
+                            <StatusDropdown
+                              value={attendanceData[student._id]?.present ? 'Present' : attendanceData[student._id]?.od ? 'On Duty' : 'Absent'}
+                              onChange={(e) => {
+                                handleStatusChange(student._id, e.target.value);
+                              }}
+                            >
+                              <option value="Present">Present</option>
+                              <option value="On Duty">On Duty</option>
+                              <option value="Absent">Absent</option>
+                            </StatusDropdown>
+                            {hasExisting && (
+                              <span style={{ 
+                                fontSize: '0.75rem', 
+                                color: '#6b7280', 
+                                marginLeft: '0.5rem' 
+                              }}>
+                                (Existing)
+                              </span>
+                            )}
+                            {isModified && (
+                              <span style={{ 
+                                fontSize: '0.75rem', 
+                                color: '#dc2626', 
+                                marginLeft: '0.5rem',
+                                fontWeight: '500'
+                              }}>
+                                (Modified)
+                              </span>
+                            )}
+                            {isNewlyAbsent && (
+                              <span style={{ 
+                                fontSize: '0.75rem', 
+                                color: '#dc2626', 
+                                marginLeft: '0.5rem',
+                                fontWeight: '500'
+                              }}>
+                                (Email will be sent)
+                              </span>
+                            )}
+                            {emailSent && (
+                              <span style={{ 
+                                fontSize: '0.75rem', 
+                                color: '#059669', 
+                                marginLeft: '0.5rem',
+                                fontWeight: '500'
+                              }}>
+                                (Email sent)
+                              </span>
+                            )}
+                          </Td>
+                          <Td>{student.name}</Td>
+                          <Td>{student.regNo}</Td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </Table>
               </div>
             ))}
             
             <Button type="submit" disabled={submitting}>
-              {submitting ? 'Submitting...' : `Submit ${session.charAt(0).toUpperCase() + session.slice(1)} Attendance`}
+              {submitting ? 'Updating...' : 
+                `Update ${session.charAt(0).toUpperCase() + session.slice(1)} Attendance` +
+                (modifiedStudents.size > 0 ? ` (${modifiedStudents.size} modified)` : '') +
+                (newlyAbsentStudents.size > 0 ? ` • ${newlyAbsentStudents.size} emails` : '')
+              }
             </Button>
           </form>
         )}
