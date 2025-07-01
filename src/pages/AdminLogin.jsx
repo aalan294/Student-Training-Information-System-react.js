@@ -2,14 +2,21 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { loginAdmin } from '../services/api';
+import Header from '../components/Header';
+
+const PageContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f3f4f6;
+`;
 
 const Container = styled.div`
-  min-height: 100vh;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f3f4f6;
-  padding: 1rem;
+  padding: 2rem 1rem;
 `;
 
 const FormContainer = styled.div`
@@ -122,39 +129,42 @@ const AdminLogin = () => {
   };
 
   return (
-    <Container>
-      <FormContainer>
-        <Title>Admin Login</Title>
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-        <Form onSubmit={handleSubmit}>
-          <InputGroup>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-            />
-          </InputGroup>
-          <InputGroup>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-            />
-          </InputGroup>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Logging in...' : 'Login'}
-          </Button>
-        </Form>
-      </FormContainer>
-    </Container>
+    <PageContainer>
+      <Header />
+      <Container>
+        <FormContainer>
+          <Title>Admin Login</Title>
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+          <Form onSubmit={handleSubmit}>
+            <InputGroup>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+              />
+            </InputGroup>
+            <InputGroup>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
+            </InputGroup>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
+            </Button>
+          </Form>
+        </FormContainer>
+      </Container>
+    </PageContainer>
   );
 };
 

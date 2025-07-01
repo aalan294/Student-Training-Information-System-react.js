@@ -2,11 +2,19 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { getStudentModules, getModuleLeaderboard } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
+
+const PageContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f9fafb;
+`;
 
 const Container = styled.div`
   padding: 2rem;
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 72px auto 0; // Add top margin to account for fixed header
 `;
 
 const Header = styled.div`
@@ -268,81 +276,103 @@ const Leaderboard = () => {
 
   if (loading && !selectedModule) {
     return (
-      <Container>
-        <LoadingMessage>Loading modules...</LoadingMessage>
-      </Container>
+      <PageContainer>
+        <Header />
+        <Container>
+          <LoadingMessage>Loading modules...</LoadingMessage>
+        </Container>
+      </PageContainer>
+    );
+  }
+
+  if (loading) {
+    return (
+      <PageContainer>
+        <Header />
+        <Container>
+          <LoadingMessage>Loading leaderboard data...</LoadingMessage>
+        </Container>
+      </PageContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <PageContainer>
+        <Header />
+        <Container>
+          <ErrorMessage>{error}</ErrorMessage>
+        </Container>
+      </PageContainer>
     );
   }
 
   return (
-    <Container>
-      <Header>
-        <Title>Module Leaderboard</Title>
-        <BackButton onClick={() => navigate('/student/dashboard')}>
-          Back to Dashboard
-        </BackButton>
-      </Header>
+    <PageContainer>
+      <Header />
+      <Container>
+        <Header>
+          <Title>Module Leaderboard</Title>
+          <BackButton onClick={() => navigate('/student/dashboard')}>
+            Back to Dashboard
+          </BackButton>
+        </Header>
 
-      {error && <ErrorMessage>{error}</ErrorMessage>}
+        <FiltersContainer>
+          <Select
+            value={selectedModule}
+            onChange={(e) => setSelectedModule(e.target.value)}
+          >
+            {modules.map(module => (
+              <option key={module._id} value={module._id}>
+                {module.title}
+              </option>
+            ))}
+          </Select>
 
-      <FiltersContainer>
-        <Select
-          value={selectedModule}
-          onChange={(e) => setSelectedModule(e.target.value)}
-        >
-          {modules.map(module => (
-            <option key={module._id} value={module._id}>
-              {module.title}
-            </option>
-          ))}
-        </Select>
+          <Select
+            value={examType}
+            onChange={(e) => setExamType(e.target.value)}
+          >
+            {examOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </Select>
 
-        <Select
-          value={examType}
-          onChange={(e) => setExamType(e.target.value)}
-        >
-          {examOptions.map(option => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
+          <SearchInput
+            type="text"
+            placeholder="Search by name or registration number..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </FiltersContainer>
 
-        <SearchInput
-          type="text"
-          placeholder="Search by name or registration number..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </FiltersContainer>
+        {currentStudent && (
+          <CurrentStudentHighlight>
+            <CurrentStudentInfo>
+              <CurrentStudentRank>#{currentStudent.position}</CurrentStudentRank>
+              <CurrentStudentDetails>
+                <CurrentStudentName>{currentStudent.name}</CurrentStudentName>
+                <CurrentStudentScore>
+                  {examType === 'average' 
+                    ? `Average Score: ${currentStudent.averageScore}%`
+                    : `Exam ${examType.replace('exam', '')} Score: ${
+                        currentStudent.examScores.find(
+                          s => s.examNumber === parseInt(examType.replace('exam', ''))
+                        )?.score || 0
+                      }%`
+                  }
+                </CurrentStudentScore>
+              </CurrentStudentDetails>
+            </CurrentStudentInfo>
+            <TotalStudents>
+              Total Students: {leaderboardData.length}
+            </TotalStudents>
+          </CurrentStudentHighlight>
+        )}
 
-      {currentStudent && (
-        <CurrentStudentHighlight>
-          <CurrentStudentInfo>
-            <CurrentStudentRank>#{currentStudent.position}</CurrentStudentRank>
-            <CurrentStudentDetails>
-              <CurrentStudentName>{currentStudent.name}</CurrentStudentName>
-              <CurrentStudentScore>
-                {examType === 'average' 
-                  ? `Average Score: ${currentStudent.averageScore}%`
-                  : `Exam ${examType.replace('exam', '')} Score: ${
-                      currentStudent.examScores.find(
-                        s => s.examNumber === parseInt(examType.replace('exam', ''))
-                      )?.score || 0
-                    }%`
-                }
-              </CurrentStudentScore>
-            </CurrentStudentDetails>
-          </CurrentStudentInfo>
-          <TotalStudents>
-            Total Students: {leaderboardData.length}
-          </TotalStudents>
-        </CurrentStudentHighlight>
-      )}
-
-      {loading ? (
-        <LoadingMessage>Loading leaderboard data...</LoadingMessage>
-      ) : (
         <LeaderboardTable>
           <TableHead>
             <tr>
@@ -367,8 +397,8 @@ const Leaderboard = () => {
             ))}
           </tbody>
         </LeaderboardTable>
-      )}
-    </Container>
+      </Container>
+    </PageContainer>
   );
 };
 

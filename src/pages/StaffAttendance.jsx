@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { getVenueStudents, markAttendance } from '../services/api';
+import { getVenueStudents, markAttendance, getExistingAttendance } from '../services/api';
+import { useSystemConfig } from '../hooks/useSystemConfig';
 import styled from 'styled-components';
 import { toast } from 'react-toastify';
 import { FaCheckCircle, FaTimesCircle, FaUserTie } from 'react-icons/fa';
@@ -175,6 +176,7 @@ const Stat = styled.div`
 `;
 
 const StaffAttendance = () => {
+  const { config: systemConfig, loading: configLoading } = useSystemConfig();
   const [students, setStudents] = useState([]);
   const [session, setSession] = useState('forenoon');
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
@@ -182,6 +184,14 @@ const StaffAttendance = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [attendanceData, setAttendanceData] = useState({});
+  const [attendanceLocked, setAttendanceLocked] = useState(false);
+  const [existingAttendance, setExistingAttendance] = useState({});
+
+  useEffect(() => {
+    if (!configLoading && systemConfig.defaultSession) {
+      setSession(systemConfig.defaultSession);
+    }
+  }, [configLoading, systemConfig.defaultSession]);
 
   useEffect(() => {
     const fetchStudents = async () => {
@@ -190,12 +200,36 @@ const StaffAttendance = () => {
       try {
         const res = await getVenueStudents();
         setStudents(res.data.students);
-        // Initialize attendance data with all students present
+        // Initialize attendance data with all students present by default
         const initialData = {};
         res.data.students.forEach(student => {
           initialData[student._id] = { present: true, od: false };
         });
         setAttendanceData(initialData);
+        // Fetch existing attendance for this date/session
+        try {
+          const attendanceRes = await getExistingAttendance(date, session);
+          const existingData = attendanceRes.data.attendanceData;
+          setExistingAttendance(existingData);
+          if (Object.keys(existingData).length > 0) {
+            setAttendanceLocked(true);
+            // Pre-fill attendanceData with existing values
+            const mergedData = { ...initialData };
+            Object.keys(existingData).forEach(studentId => {
+              if (mergedData[studentId]) {
+                mergedData[studentId] = {
+                  present: existingData[studentId].present,
+                  od: existingData[studentId].od
+                };
+              }
+            });
+            setAttendanceData(mergedData);
+          } else {
+            setAttendanceLocked(false);
+          }
+        } catch {
+          setAttendanceLocked(false);
+        }
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to fetch students');
       } finally {
@@ -203,7 +237,8 @@ const StaffAttendance = () => {
       }
     };
     fetchStudents();
-  }, []);
+    // eslint-disable-next-line
+  }, [date, session]);
 
   const handleStatusChange = (studentId, status) => {
     setAttendanceData(prev => ({
@@ -219,20 +254,22 @@ const StaffAttendance = () => {
     e.preventDefault();
     setSubmitting(true);
     try {
-      const attendanceArray = Object.entries(attendanceData).map(([studentId, data]) => ({
-        studentId,
-        present: data.present,
-        od: data.od
-      }));
-
-      const response = await markAttendance(date, session, attendanceArray);
-      const emailCount = response.data?.summary?.emailsSent || 0;
-      
-      if (emailCount > 0) {
-        toast.success(`${session.charAt(0).toUpperCase() + session.slice(1)} attendance marked successfully! ${emailCount} absence email(s) sent.`);
-      } else {
-        toast.success(`${session.charAt(0).toUpperCase() + session.slice(1)} attendance marked successfully!`);
-      }
+      // Only include students who are explicitly marked as absent or on duty
+      const attendanceArray = Object.entries(attendanceData)
+        .map(([studentId, data]) => {
+          if (data.present && !data.od) {
+            return null; // Skip students who are present (default state)
+          }
+          return {
+            studentId,
+            present: data.present,
+            od: data.od
+          };
+        })
+        .filter(item => item !== null);
+      await markAttendance(date, session, attendanceArray);
+      toast.success('Attendance submitted successfully!');
+      setAttendanceLocked(true);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to mark attendance');
     } finally {
@@ -253,6 +290,22 @@ const StaffAttendance = () => {
     <Container>
       <Card>
         <Title>Mark Attendance</Title>
+        {attendanceLocked && (
+          <div style={{ color: '#888', marginBottom: 16 }}>
+            Attendance editing is disabled after submission for this session/date.
+          </div>
+        )}
+        <div style={{ 
+          background: '#f0f9ff', 
+          border: '1px solid #0ea5e9', 
+          borderRadius: '0.5rem', 
+          padding: '1rem', 
+          marginBottom: '1.5rem' 
+        }}>
+          <p style={{ margin: 0, color: '#0c4a6e', fontSize: '0.9rem' }}>
+            <strong>Note:</strong> All students are marked as present by default. Only mark students as absent or on duty if they are not present.
+          </p>
+        </div>
         
         {loading ? (
           <div>Loading students...</div>
@@ -315,16 +368,16 @@ const StaffAttendance = () => {
                 {students.map(student => (
                   <tr key={student._id}>
                     <Td>
-                      <StatusDropdown
+                      <select
                         value={attendanceData[student._id]?.present ? 'Present' : attendanceData[student._id]?.od ? 'On Duty' : 'Absent'}
-                        onChange={(e) => {
-                          handleStatusChange(student._id, e.target.value);
-                        }}
+                        onChange={e => handleStatusChange(student._id, e.target.value)}
+                        disabled={attendanceLocked}
+                        style={attendanceLocked ? { background: '#f3f4f6', color: '#888' } : {}}
                       >
                         <option value="Present">Present</option>
                         <option value="On Duty">On Duty</option>
                         <option value="Absent">Absent</option>
-                      </StatusDropdown>
+                      </select>
                     </Td>
                     <Td>{student.name}</Td>
                     <Td>{student.regNo}</Td>
@@ -333,8 +386,8 @@ const StaffAttendance = () => {
               </tbody>
             </Table>
             
-            <Button type="submit" disabled={submitting}>
-              {submitting ? 'Submitting...' : `Submit ${session.charAt(0).toUpperCase() + session.slice(1)} Attendance`}
+            <Button type="submit" disabled={submitting || attendanceLocked}>
+              {submitting ? 'Submitting...' : 'Submit Attendance'}
             </Button>
           </form>
         )}

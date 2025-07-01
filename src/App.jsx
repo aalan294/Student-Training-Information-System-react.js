@@ -23,12 +23,14 @@ import StaffManagement from './components/admin/StaffManagement';
 import StaffLogin from './pages/StaffLogin';
 import StaffProtectedRoute from './routes/StaffProtectedRoute';
 import StaffLayout from './components/staff/StaffLayout';
+import StudentLayout from './components/student/StudentLayout';
 import StaffDashboard from './pages/StaffDashboard';
 import StaffAttendance from './pages/StaffAttendance';
 import StaffStudents from './pages/StaffStudents';
 import AttendanceHistory from './pages/staff/AttendanceHistory';
 import AttendanceHistoryAdmin from './pages/admin/AttendanceHistory';
 import AdminAttendance from './pages/admin/AdminAttendance';
+import AdminSettings from './pages/admin/AdminSettings';
 
 const PrivateRoute = ({ children }) => {
   const isAuthenticated = localStorage.getItem('isAdminAuthenticated') === 'true';
@@ -64,6 +66,7 @@ function App() {
             <Route path="staff" element={<StaffManagement />} />
             <Route path="attendance-history" element={<AttendanceHistoryAdmin />} />
             <Route path="attendance" element={<AdminAttendance />} />
+            <Route path="settings" element={<AdminSettings />} />
           </Route>
           
           {/* Student Routes */}
@@ -94,6 +97,7 @@ function App() {
           >
             <Route index element={<Navigate to="/staff/attendance" replace />} />
             <Route path="attendance" element={<StaffAttendance />} />
+            <Route path="dashboard" element={<StaffDashboard />} />
             <Route path="students" element={<StaffStudents />} />
             <Route path="leaderboard" element={<Leaderboard />} />
             <Route path="attendance-history" element={<AttendanceHistory />} />

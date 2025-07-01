@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaTachometerAlt, FaUserGraduate, FaChalkboardTeacher, FaClipboardList, FaUpload, FaTrophy, FaBuilding, FaUsersCog, FaHistory, FaSignOutAlt, FaCheckSquare } from 'react-icons/fa';
+import { FaTachometerAlt, FaUserGraduate, FaChalkboardTeacher, FaClipboardList, FaUpload, FaTrophy, FaBuilding, FaUsersCog, FaHistory, FaSignOutAlt, FaCheckSquare, FaCog } from 'react-icons/fa';
+import Header from '../Header';
 
 const LayoutContainer = styled.div`
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   background-color: #f9fafb;
+`;
+
+const ContentWrapper = styled.div`
+  display: flex;
+  flex: 1;
 `;
 
 const Sidebar = styled.div`
@@ -15,8 +22,10 @@ const Sidebar = styled.div`
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
   position: fixed;
-  height: 100vh;
-  z-index: 1000;
+  top: 72px; // Height of the header
+  left: 0;
+  height: calc(100vh - 72px);
+  z-index: 999;
   font-family: 'Inter', 'Roboto', Arial, sans-serif;
   overflow-y: auto;
 
@@ -28,22 +37,25 @@ const Sidebar = styled.div`
 const MainContent = styled.div`
   flex: 1;
   margin-left: 250px;
-  transition: margin-left 0.3s ease;
-  padding: 2rem;
+  padding: 1rem 2rem;
   background: linear-gradient(120deg, #f9fafb 60%, #e0e7ff 100%);
   font-family: 'Inter', 'Roboto', Arial, sans-serif;
+  margin-top: 72px; // Height of the header
+  min-height: calc(100vh - 72px);
 
   @media (max-width: 768px) {
     margin-left: 0;
+    width: 100%;
+    padding: 1rem;
   }
 `;
 
 const MenuButton = styled.button`
   position: fixed;
-  top: 1.5rem;
-  left: 1.5rem;
+  top: 1.2rem;
+  left: 1rem;
   z-index: 1001;
-  background: white;
+  background: transparent;
   border: none;
   cursor: pointer;
   padding: 0.75rem;
@@ -51,20 +63,7 @@ const MenuButton = styled.button`
   align-items: center;
   justify-content: center;
   color: #374151;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
   
-  &:hover {
-    color: #2563eb;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
   @media (max-width: 768px) {
     display: flex;
   }
@@ -112,7 +111,7 @@ const MenuList = styled.ul`
   list-style: none;
   padding: 0;
   margin: 0;
-  margin-top: 4rem;
+  padding-top: 1rem;
 `;
 
 const MenuItem = styled.li`
@@ -199,51 +198,55 @@ const AdminLayout = ({ children }) => {
     { name: 'Dashboard', href: '/admin/dashboard', icon: <FaTachometerAlt /> },
     { name: 'Students', href: '/admin/students', icon: <FaUserGraduate /> },
     { name: 'Training', href: '/admin/training', icon: <FaChalkboardTeacher /> },
-    { name: 'Scores', href: '/admin/scores', icon: <FaClipboardList /> },
+    { name: 'Attendance', href: '/admin/attendance', icon: <FaClipboardList /> },
+    { name: 'Score Upload', href: '/admin/scores', icon: <FaUpload /> },
     { name: 'Bulk Upload', href: '/admin/bulk-upload', icon: <FaUpload /> },
     { name: 'Leaderboard', href: '/admin/leaderboard', icon: <FaTrophy /> },
     { name: 'Venues', href: '/admin/venues', icon: <FaBuilding /> },
     { name: 'Staff', href: '/admin/staff', icon: <FaUsersCog /> },
-    { name: 'Attendance', href: '/admin/attendance', icon: <FaCheckSquare /> },
     { name: 'Attendance History', href: '/admin/attendance-history', icon: <FaHistory /> },
+    { name: 'Settings', href: '/admin/settings', icon: <FaCog /> }
   ];
 
   return (
     <LayoutContainer>
-      <MenuButton onClick={() => setIsOpen(!isOpen)}>
-        <MenuIcon isOpen={isOpen}>
-          <span></span>
-          <span></span>
-          <span></span>
-        </MenuIcon>
-      </MenuButton>
+      <Header />
+      <ContentWrapper>
+        <MenuButton onClick={() => setIsOpen(!isOpen)}>
+          <MenuIcon isOpen={isOpen}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </MenuIcon>
+        </MenuButton>
 
-      <Sidebar isOpen={isOpen}>
-        <MenuList>
-          {navigation.map((item) => (
-            <MenuItem key={item.href}>
-              <MenuLink
-                to={item.href}
-                active={location.pathname.startsWith(item.href)}
-                onClick={handleLinkClick}
-              >
-                {item.icon && <span style={{marginRight: 10}}>{item.icon}</span>}
-                {item.name}
-              </MenuLink>
+        <Sidebar isOpen={isOpen}>
+          <MenuList>
+            {navigation.map((item) => (
+              <MenuItem key={item.name}>
+                <MenuLink
+                  to={item.href}
+                  active={location.pathname === item.href ? 1 : 0}
+                  onClick={handleLinkClick}
+                >
+                  {item.icon}
+                  {item.name}
+                </MenuLink>
+              </MenuItem>
+            ))}
+            <MenuItem>
+              <LogoutButton onClick={handleLogout}>
+                <FaSignOutAlt />
+                Logout
+              </LogoutButton>
             </MenuItem>
-          ))}
-          <MenuItem>
-            <LogoutButton onClick={handleLogout}>
-              <FaSignOutAlt />
-              Logout
-            </LogoutButton>
-          </MenuItem>
-        </MenuList>
-      </Sidebar>
+          </MenuList>
+        </Sidebar>
 
-      <MainContent isOpen={isOpen}>
-        {children}
-      </MainContent>
+        <MainContent>
+          {children}
+        </MainContent>
+      </ContentWrapper>
     </LayoutContainer>
   );
 };

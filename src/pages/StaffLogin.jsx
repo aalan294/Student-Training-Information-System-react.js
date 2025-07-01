@@ -1,114 +1,170 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
-import { toast } from 'react-toastify';
-import { FaEnvelope, FaLock } from 'react-icons/fa';
+import styled from 'styled-components';
+import { loginStaff } from '../services/api';
+import Header from '../components/Header';
+
+const PageContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f3f4f6;
+`;
 
 const Container = styled.div`
-  min-height: 100vh;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f9fafb;
+  padding: 2rem 1rem;
 `;
-const Card = styled.div`
-  background: #fff;
-  padding: 2.5rem 2rem;
-  border-radius: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  width: 100%;
-  max-width: 400px;
-`;
-const Title = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #22c55e;
-  margin-bottom: 2rem;
-  text-align: center;
-`;
-const Input = styled.input`
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
+
+const FormContainer = styled.div`
+  background-color: white;
+  padding: 2rem;
   border-radius: 0.5rem;
-  font-size: 1rem;
-  margin-bottom: 1.25rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 28rem;
+`;
+
+const Title = styled.h1`
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  margin-bottom: 2rem;
+`;
+
+const Form = styled.form`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const InputGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const Label = styled.label`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #374151;
+`;
+
+const Input = styled.input`
+  padding: 0.625rem 0.875rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: all 200ms;
+
   &:focus {
     outline: none;
-    border-color: #22c55e;
-    box-shadow: 0 0 0 2px #bbf7d0;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
   }
 `;
+
 const Button = styled.button`
-  width: 100%;
-  background: #22c55e;
-  color: #fff;
+  padding: 0.625rem 1.25rem;
+  background-color: #2563eb;
+  color: white;
   border: none;
-  border-radius: 0.5rem;
-  padding: 0.75rem;
-  font-size: 1rem;
-  font-weight: 600;
+  border-radius: 0.375rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 200ms;
+
   &:hover {
-    background: #16a34a;
+    background-color: #1d4ed8;
+  }
+
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
   }
 `;
-const ErrorMsg = styled.div`
+
+const ErrorMessage = styled.div`
+  padding: 0.75rem;
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
   color: #dc2626;
+  font-size: 0.875rem;
   margin-bottom: 1rem;
-  text-align: center;
 `;
 
 const StaffLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setIsLoading(true);
+
     try {
-      const res = await api.post('/staff/login', { email, password });
-      localStorage.setItem('staffToken', res.data.token);
-      localStorage.setItem('staffData', JSON.stringify(res.data.staff));
-      toast.success('Login successful!');
-      navigate('/staff/attendance');
+      const response = await loginStaff({ email, password });
+      localStorage.setItem('staffToken', response.data.token);
+      localStorage.setItem('staffData', JSON.stringify(response.data.staff));
+      localStorage.setItem('isStaffAuthenticated', 'true');
+      navigate('/staff/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.message || 'Failed to login. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <Container>
-      <Card>
-        <Title>Staff Login</Title>
-        <form onSubmit={handleSubmit}>
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            required
-          />
-          {error && <ErrorMsg>{error}</ErrorMsg>}
-          <Button type="submit" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</Button>
-        </form>
-      </Card>
-    </Container>
+    <PageContainer>
+      <Header />
+      <Container>
+        <FormContainer>
+          <Title>Staff Login</Title>
+          {error && <ErrorMessage>{error}</ErrorMessage>}
+          <Form onSubmit={handleSubmit}>
+            <InputGroup>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email"
+                required
+              />
+            </InputGroup>
+            <InputGroup>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
+            </InputGroup>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
+            </Button>
+          </Form>
+        </FormContainer>
+      </Container>
+    </PageContainer>
   );
 };
 

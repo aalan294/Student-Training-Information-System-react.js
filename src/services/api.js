@@ -75,6 +75,7 @@ api.interceptors.response.use(
 export const loginAdmin = (credentials) => api.post('/admin/login', credentials);
 export const registerAdmin = (adminData) => api.post('/admin/register', adminData);
 export const loginStudent = (credentials) => api.post('/student/login', credentials);
+export const loginStaff = (credentials) => api.post('/staff/login', credentials);
 
 // Student APIs
 export const getAllStudents = () => {
@@ -195,5 +196,9 @@ export const getVenueLeaderboard = () => api.get('/staff/venue-leaderboard');
 // Admin Attendance
 export const markAttendanceByAdmin = (date, session, attendanceData) => api.post('/admin/mark-attendance', { date, session, attendanceData });
 export const getExistingAttendance = (date, session) => api.get('/admin/existing-attendance', { params: { date, session } });
+
+// System Configuration
+export const getSystemConfig = () => api.get('/admin/config');
+export const updateSystemConfig = (config) => api.put('/admin/config', { config });
 
 export default api;

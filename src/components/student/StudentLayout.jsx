@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FaClipboardList, FaUserGraduate, FaTrophy, FaHistory, FaSignOutAlt } from 'react-icons/fa';
+import { FaTachometerAlt, FaChalkboardTeacher, FaTrophy, FaUserCircle, FaSignOutAlt } from 'react-icons/fa';
 import Header from '../Header';
 
 const LayoutContainer = styled.div`
@@ -164,7 +164,7 @@ const LogoutButton = styled.button`
   }
 `;
 
-const StaffLayout = ({ children }) => {
+const StudentLayout = ({ children }) => {
   const [isOpen, setIsOpen] = useState(window.innerWidth > 768);
   const location = useLocation();
   const navigate = useNavigate();
@@ -183,9 +183,9 @@ const StaffLayout = ({ children }) => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('staffToken');
-    localStorage.removeItem('staffData');
-    navigate('/staff/login');
+    localStorage.removeItem('studentToken');
+    localStorage.removeItem('studentData');
+    navigate('/student/login');
   };
 
   const handleLinkClick = () => {
@@ -195,10 +195,10 @@ const StaffLayout = ({ children }) => {
   };
 
   const navigation = [
-    { name: 'Attendance', href: '/staff/attendance', icon: <FaClipboardList /> },
-    { name: 'Students', href: '/staff/students', icon: <FaUserGraduate /> },
-    { name: 'Leaderboard', href: '/staff/leaderboard', icon: <FaTrophy /> },
-    { name: 'Attendance History', href: '/staff/attendance-history', icon: <FaHistory /> }
+    { name: 'Dashboard', href: '/student/dashboard', icon: <FaTachometerAlt /> },
+    { name: 'Training Modules', href: '/student/training', icon: <FaChalkboardTeacher /> },
+    { name: 'Leaderboard', href: '/student/leaderboard', icon: <FaTrophy /> },
+    { name: 'Profile', href: '/student/profile', icon: <FaUserCircle /> }
   ];
 
   return (
@@ -244,4 +244,4 @@ const StaffLayout = ({ children }) => {
   );
 };
 
-export default StaffLayout; 
+export default StudentLayout; 

@@ -1,109 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
 import { getStudentProfile } from '../services/api';
 import StudentAvatar from '../components/student/StudentAvatar';
 import ProgressSummary from '../components/student/ProgressSummary';
 import TrainingModulesList from '../components/student/TrainingModulesList';
+import Header from '../components/Header';
+
+const PageContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f9fafb;
+`;
 
 const Container = styled.div`
-  padding: 2rem;
   max-width: 1200px;
-  margin: 0 auto;
+  margin: 72px auto 0; // Add top margin to account for fixed header
   position: relative;
-`;
-
-const MenuButton = styled.button`
-  position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
-  z-index: 1001;
-  background: white;
-  border: none;
-  cursor: pointer;
-  padding: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #374151;
-  border-radius: 0.5rem;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-  
-  &:hover {
-    color: #2563eb;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transform: translateY(-1px);
-  }
-`;
-
-const MenuIcon = styled.div`
-  width: 20px;
-  height: 16px;
-  position: relative;
-  transform: rotate(0deg);
-  transition: 0.5s ease-in-out;
-  cursor: pointer;
-  
-  span {
-    display: block;
-    position: absolute;
-    height: 2px;
-    width: 100%;
-    background: currentColor;
-    border-radius: 2px;
-    opacity: 1;
-    left: 0;
-    transform: rotate(0deg);
-    transition: .25s ease-in-out;
-    
-    &:nth-child(1) {
-      top: ${props => props.isOpen ? '7px' : '0px'};
-      transform: ${props => props.isOpen ? 'rotate(135deg)' : 'rotate(0)'};
-    }
-    
-    &:nth-child(2) {
-      top: 7px;
-      opacity: ${props => props.isOpen ? '0' : '1'};
-      transform: ${props => props.isOpen ? 'translateX(20px)' : 'translateX(0)'};
-    }
-    
-    &:nth-child(3) {
-      top: ${props => props.isOpen ? '7px' : '14px'};
-      transform: ${props => props.isOpen ? 'rotate(-135deg)' : 'rotate(0)'};
-    }
-  }
-`;
-
-const MenuList = styled.div`
-  position: fixed;
-  top: 4rem;
-  right: 1.5rem;
-  background: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 0.5rem;
-  z-index: 1000;
-  display: ${props => props.isOpen ? 'block' : 'none'};
-`;
-
-const MenuItem = styled.button`
-  display: block;
-  width: 100%;
-  padding: 0.75rem 1rem;
-  text-align: left;
-  background: none;
-  border: none;
-  color: #374151;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  border-radius: 0.375rem;
-
-  &:hover {
-    background: #f3f4f6;
-    color: #2563eb;
-  }
+  padding: 2rem;
 `;
 
 const DashboardHeader = styled.div`
@@ -151,8 +65,6 @@ const getLevelFromCompleted = (numCompleted) => {
 };
 
 const StudentDashboard = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const navigate = useNavigate();
   const [studentData, setStudentData] = useState(null);
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -170,7 +82,6 @@ const StudentDashboard = () => {
         throw new Error('Student data not found. Please login again.');
       }
       const profileResponse = await getStudentProfile();
-      console.log("important : ",profileResponse)
       const { student, progress } = profileResponse.data;
       setStudentData(student);
       // Map progress to modules for dashboard
@@ -196,88 +107,64 @@ const StudentDashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('studentToken');
-    localStorage.removeItem('studentData');
-    navigate('/student/login');
+  const calculateAverageScore = (modules) => {
+    if (!modules.length) return 0;
+    const totalScore = modules.reduce((sum, module) => sum + module.averageScore, 0);
+    return (totalScore / modules.length).toFixed(1);
   };
 
-  const handleLeaderboard = () => {
-    navigate('/student/leaderboard');
+  const calculateAttendancePercentage = (modules) => {
+    if (!modules.length) return 0;
+    const totalAttendance = modules.reduce((sum, module) => {
+      const attended = module.attendance.filter(a => a.present).length;
+      const total = module.attendance.length;
+      return sum + (total ? (attended / total) * 100 : 0);
+    }, 0);
+    return (totalAttendance / modules.length).toFixed(1);
   };
 
   if (loading) {
     return (
-      <Container>
-        <div>Loading your dashboard...</div>
-      </Container>
+      <PageContainer>
+        <Header />
+        <Container>Loading...</Container>
+      </PageContainer>
     );
   }
+
   if (error) {
     return (
-      <Container>
-        <div style={{ color: 'red' }}>{error}</div>
-      </Container>
-    );
-  }
-  if (!studentData) {
-    return (
-      <Container>
-        <div>No student data found.</div>
-      </Container>
+      <PageContainer>
+        <Header />
+        <Container>{error}</Container>
+      </PageContainer>
     );
   }
 
   return (
-    <Container>
-      <MenuButton onClick={() => setIsMenuOpen(!isMenuOpen)}>
-        <MenuIcon isOpen={isMenuOpen}>
-          <span></span>
-          <span></span>
-          <span></span>
-        </MenuIcon>
-      </MenuButton>
+    <PageContainer>
+      <Header />
+      <Container>
+        <DashboardHeader>
+          <WelcomeSection>
+            <WelcomeText>Welcome, {studentData?.name}!</WelcomeText>
+            <SubText>Track your training progress and performance</SubText>
+          </WelcomeSection>
+          <StudentAvatar student={studentData} size="large" />
+        </DashboardHeader>
 
-      <MenuList isOpen={isMenuOpen}>
-        <MenuItem onClick={handleLogout}>Logout</MenuItem>
-      </MenuList>
-
-      <DashboardHeader>
-        <StudentAvatar 
-          level={getLevelFromCompleted(studentData.numTrainingsCompleted || 0)}
-          completedModules={studentData.numTrainingsCompleted || 0}
+        <ProgressSummary
+          completedModules={modules.filter(m => m.isCompleted).length}
+          totalModules={modules.length}
+          averageScore={calculateAverageScore(modules)}
+          attendancePercentage={calculateAttendancePercentage(modules)}
+          level={getLevelFromCompleted(modules.filter(m => m.isCompleted).length)}
         />
-        <WelcomeSection>
-          <WelcomeText>Welcome back, {studentData.name}!</WelcomeText>
-          <SubText>Track your progress and stay motivated on your journey to success.</SubText>
-        </WelcomeSection>
-      </DashboardHeader>
-      <ProgressSummary 
-        totalModules={modules.length}
-        completedModules={modules.filter(m => m.isCompleted).length}
-        averageScore={calculateAverageScore(modules)}
-        attendancePercentage={calculateAttendancePercentage(modules)}
-        placementCategory={studentData.batch}
-      />
-      <TrainingModulesList 
-        modules={modules}
-      />
-    </Container>
+
+        <TrainingModulesList modules={modules} />
+      </Container>
+    </PageContainer>
   );
-};
-
-const calculateAverageScore = (modules) => {
-  const modulesWithScores = modules.filter(m => m.averageScore !== null && m.averageScore !== undefined);
-  if (modulesWithScores.length === 0) return 0;
-  const totalScore = modulesWithScores.reduce((sum, module) => sum + module.averageScore, 0);
-  return Math.round(totalScore / modulesWithScores.length);
-};
-
-const calculateAttendancePercentage = (modules) => {
-  const totalDays = modules.reduce((sum, module) => sum + (module.attendance?.length || 0), 0);
-  const presentDays = modules.reduce((sum, module) => sum + (module.attendance?.filter(a => a.present).length || 0), 0);
-  if (totalDays === 0) return 0;
-  return Math.round((presentDays / totalDays) * 100);
 };
 
 export default StudentDashboard; 

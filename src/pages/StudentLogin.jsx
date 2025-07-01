@@ -2,32 +2,38 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { loginStudent } from '../services/api';
-import { FaEnvelope, FaLock } from 'react-icons/fa';
+import Header from '../components/Header';
+
+const PageContainer = styled.div`
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f3f4f6;
+`;
 
 const Container = styled.div`
-  min-height: 100vh;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f3f4f6;
-  padding: 1rem;
+  padding: 2rem 1rem;
 `;
 
-const LoginCard = styled.div`
+const FormContainer = styled.div`
   background-color: white;
-  border-radius: 1rem;
   padding: 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 400px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 28rem;
 `;
 
 const Title = styled.h1`
   font-size: 1.875rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 1.5rem;
+  font-weight: 700;
+  color: #111827;
   text-align: center;
+  margin-bottom: 2rem;
 `;
 
 const Form = styled.form`
@@ -36,7 +42,7 @@ const Form = styled.form`
   gap: 1.5rem;
 `;
 
-const FormGroup = styled.div`
+const InputGroup = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -49,120 +55,116 @@ const Label = styled.label`
 `;
 
 const Input = styled.input`
-  padding: 0.75rem;
+  padding: 0.625rem 0.875rem;
   border: 1px solid #d1d5db;
-  border-radius: 0.5rem;
-  font-size: 1rem;
-  transition: all 0.2s;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  transition: all 200ms;
 
   &:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
   }
 `;
 
 const Button = styled.button`
+  padding: 0.625rem 1.25rem;
   background-color: #2563eb;
   color: white;
-  padding: 0.75rem;
   border: none;
-  border-radius: 0.5rem;
-  font-size: 1rem;
+  border-radius: 0.375rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 200ms;
 
   &:hover {
     background-color: #1d4ed8;
   }
 
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  }
+
   &:disabled {
-    background-color: #93c5fd;
+    opacity: 0.7;
     cursor: not-allowed;
   }
 `;
 
 const ErrorMessage = styled.div`
+  padding: 0.75rem;
+  background-color: #fee2e2;
+  border: 1px solid #fecaca;
+  border-radius: 0.375rem;
   color: #dc2626;
   font-size: 0.875rem;
-  margin-top: 0.5rem;
+  margin-bottom: 1rem;
 `;
 
 const StudentLogin = () => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    regNo: '',
-    password: ''
-  });
+  const [regNo, setRegNo] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setIsLoading(true);
 
     try {
-      const response = await loginStudent(formData);
+      const response = await loginStudent({ regNo, password });
       localStorage.setItem('studentToken', response.data.token);
       localStorage.setItem('studentData', JSON.stringify(response.data.student));
+      localStorage.setItem('isStudentAuthenticated', 'true');
       navigate('/student/dashboard');
     } catch (err) {
-      console.error('Login error:', err);
       setError(err.response?.data?.message || 'Failed to login. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <Container>
-      <LoginCard>
-        <Title>Student Login</Title>
-        <Form onSubmit={handleSubmit}>
-          <FormGroup>
-            <Label htmlFor="regNo">Registration Number</Label>
-            <Input
-              type="text"
-              id="regNo"
-              name="regNo"
-              value={formData.regNo}
-              onChange={handleChange}
-              required
-              placeholder="Enter your registration number"
-            />
-          </FormGroup>
-
-          <FormGroup>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              placeholder="Enter your password"
-            />
-          </FormGroup>
-
+    <PageContainer>
+      <Header />
+      <Container>
+        <FormContainer>
+          <Title>Student Login</Title>
           {error && <ErrorMessage>{error}</ErrorMessage>}
-
-          <Button type="submit" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
-          </Button>
-        </Form>
-      </LoginCard>
-    </Container>
+          <Form onSubmit={handleSubmit}>
+            <InputGroup>
+              <Label htmlFor="regNo">Registration Number</Label>
+              <Input
+                id="regNo"
+                type="text"
+                value={regNo}
+                onChange={(e) => setRegNo(e.target.value)}
+                placeholder="Enter your registration number"
+                required
+              />
+            </InputGroup>
+            <InputGroup>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                required
+              />
+            </InputGroup>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
+            </Button>
+          </Form>
+        </FormContainer>
+      </Container>
+    </PageContainer>
   );
 };
 
